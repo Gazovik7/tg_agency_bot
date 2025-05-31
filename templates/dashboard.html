@@ -173,129 +173,26 @@
                     </div>
                 </div>
 
-            <!-- Sentiment Tab -->
-            <div class="tab-pane fade" id="sentiment" role="tabpanel">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Sentiment Distribution</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="sentimentChart" style="height: 300px;"></div>
-                            </div>
+                <!-- Вкладка Тональность -->
+                <div class="tab-pane" id="sentiment">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Анализ тональности сообщений</h3>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Sentiment Trend</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="sentimentTrendChart" style="height: 300px;"></div>
-                            </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="sentimentChart"></div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Team Performance Tab -->
-            <div class="tab-pane fade" id="team" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Team Member Performance</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                        <th>Messages</th>
-                                        <th>Avg Response Time</th>
-                                        <th>Performance</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teamPerformanceTable">
-                                    <!-- Team performance data will be populated here -->
-                                </tbody>
-                            </table>
+                <!-- Вкладка Коммуникации -->
+                <div class="tab-pane" id="communications">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Обзор коммуникаций</h3>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Clients Tab -->
-            <div class="tab-pane fade" id="clients" role="tabpanel">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Most Active Clients</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Client</th>
-                                                <th>Messages</th>
-                                                <th>Last Message</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="activeClientsTable">
-                                            <!-- Active clients data will be populated here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Client Statistics</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="text-center">
-                                    <h6>Unique Clients (24h)</h6>
-                                    <h3 class="text-primary" id="uniqueClients">0</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Communications Tab -->
-            <div class="tab-pane fade" id="communications" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Communication Overview</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <canvas id="communicationsChart" width="400" height="200"></canvas>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Key Metrics</h6>
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Client to Team Ratio</span>
-                                        <span id="clientTeamRatio">1:1</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Messages per Hour</span>
-                                        <span id="messagesPerHour">0</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Peak Hour</span>
-                                        <span id="peakHour">-</span>
-                                    </li>
-                                </ul>
-                            </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="communicationsChart"></div>
                         </div>
                     </div>
                 </div>
@@ -303,68 +200,14 @@
         </div>
     </div>
 
-    <!-- Loading Modal -->
-    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Loading dashboard data...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Modal -->
-    <div class="modal fade" id="errorModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Error</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="errorMessage">
-                    An error occurred while loading data.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="retryBtn">Retry</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Custom JavaScript -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    
+    <!-- Dashboard JavaScript -->
     <script>
-        // Set admin token from server
-        window.ADMIN_TOKEN = {{ admin_token|tojson }};
-        
-        // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for all scripts to load
-            setTimeout(function() {
-                if (typeof DashboardManager !== 'undefined' && !window.dashboardManager) {
-                    window.dashboardManager = new DashboardManager();
-                    
-                    // Expose loadDashboardData globally for error modal retry
-                    window.loadDashboardData = function() {
-                        if (window.dashboardManager) {
-                            window.dashboardManager.loadDashboardData();
-                        }
-                    };
-                }
-            }, 100);
-        });
+        // Pass admin token to JavaScript
+        var adminToken = '{{ admin_token }}';
     </script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

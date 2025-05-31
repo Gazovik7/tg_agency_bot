@@ -29,20 +29,29 @@ class FilteredDashboard {
             });
         }
 
-        // Refresh button
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                this.loadDashboardData();
-            });
-        }
-
-        // Tab change events
-        const tabs = document.querySelectorAll('#dashboardTabs button[data-bs-toggle="tab"]');
-        tabs.forEach(tab => {
-            tab.addEventListener('shown.bs.tab', (e) => {
-                const tabId = e.target.getAttribute('data-bs-target').replace('#', '');
-                this.handleTabChange(tabId);
+        // Tab change events - using your custom tab system
+        const tabItems = document.querySelectorAll('.tab-item');
+        tabItems.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Remove active class from all tabs
+                tabItems.forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Hide all tab panes
+                const tabPanes = document.querySelectorAll('.tab-pane');
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+                
+                // Show corresponding tab pane
+                const targetTab = tab.getAttribute('data-tab');
+                const targetPane = document.getElementById(targetTab);
+                if (targetPane) {
+                    targetPane.classList.add('active');
+                    this.handleTabChange(targetTab);
+                }
             });
         });
     }
@@ -217,26 +226,18 @@ class FilteredDashboard {
 
         tableBody.innerHTML = '';
 
-        // Update client statistics
-        const uniqueCount = document.getElementById('uniqueClientsCount');
-        const totalMessages = document.getElementById('totalClientMessages');
-        const avgResponse = document.getElementById('avgClientResponseTime');
-
-        if (uniqueCount) uniqueCount.textContent = clients.length;
-        if (totalMessages) {
-            const total = clients.reduce((sum, client) => sum + client.message_count, 0);
-            totalMessages.textContent = total;
-        }
-
-        // Populate table
+        // Populate table with client data
         clients.slice(0, 10).forEach(client => {
+            const avgLength = client.character_count > 0 && client.message_count > 0 
+                ? Math.round(client.character_count / client.message_count) 
+                : 0;
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${this.escapeHtml(client.name)}</td>
                 <td>${client.message_count}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
+                <td>${client.character_count || 0}</td>
+                <td>${avgLength}</td>
             `;
             tableBody.appendChild(row);
         });
