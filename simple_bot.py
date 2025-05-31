@@ -1,23 +1,29 @@
+#!/usr/bin/env python3
+"""
+Simplified Telegram bot that saves messages directly to database
+"""
 import asyncio
 import logging
 import os
-import json
 from datetime import datetime
 from typing import Optional
 
-import redis
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
 from aiogram.types import Message
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from config_manager import ConfigManager
+from models import Chat, Message as MessageModel, db
+from app import app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class TelegramMonitorBot:
-    """Telegram bot for monitoring group chats"""
+
+class SimpleTelegramBot:
+    """Simple Telegram bot that saves messages directly to database"""
     
     def __init__(self):
         self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -26,16 +32,14 @@ class TelegramMonitorBot:
         
         self.bot = Bot(token=self.bot_token)
         self.dp = Dispatcher()
-        self.redis = None
         self.config = ConfigManager()
+        
+        # Database setup
+        self.engine = create_engine(os.getenv("DATABASE_URL"))
+        self.Session = sessionmaker(bind=self.engine)
         
         # Register handlers
         self.register_handlers()
-    
-    async def init_redis(self):
-        """Initialize Redis connection"""
-        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        self.redis = redis.from_url(redis_url, decode_responses=True)
     
     def register_handlers(self):
         """Register message handlers"""
@@ -44,41 +48,48 @@ class TelegramMonitorBot:
         async def handle_all_messages(message: Message):
             """Handle all incoming messages"""
             try:
-                # Only process group and supergroup messages
-                if message.chat.type not in ['group', 'supergroup']:
-                    return
-                
                 await self.process_message(message)
             except Exception as e:
-                logger.error(f"Error processing message: {e}")
+                logger.error(f"Error handling message: {e}")
     
     async def process_message(self, message: Message):
-        """Process incoming message and add to Redis queue"""
+        """Process incoming message and save to database"""
         try:
-            # Determine if sender is team member
-            is_team_member = await self.is_team_member(message.from_user.id)
+            # Check if user is team member
+            user_id = message.from_user.id if message.from_user else 0
+            is_team_member = await self.is_team_member(user_id)
             
-            # Create message data
-            message_data = {
-                "message_id": message.message_id,
-                "chat_id": message.chat.id,
-                "chat_title": message.chat.title,
-                "chat_type": message.chat.type,
-                "user_id": message.from_user.id,
-                "username": message.from_user.username,
-                "full_name": message.from_user.full_name,
-                "text": message.text or "",
-                "message_type": self.get_message_type(message),
-                "is_team_member": is_team_member,
-                "timestamp": message.date.isoformat(),
-                "processed_at": datetime.utcnow().isoformat()
-            }
-            
-            # Add to Redis queue (sync operation)
-            if self.redis:
-                self.redis.lpush("message_queue", json.dumps(message_data))
-            
-            logger.info(f"Queued message from chat {message.chat.title} ({message.chat.id})")
+            # Save message to database
+            with app.app_context():
+                # Get or create chat
+                chat = db.session.query(Chat).filter_by(id=message.chat.id).first()
+                if not chat:
+                    chat = Chat(
+                        id=message.chat.id,
+                        title=message.chat.title or "Private Chat",
+                        chat_type=message.chat.type,
+                        is_active=True
+                    )
+                    db.session.add(chat)
+                
+                # Create message record
+                message_record = MessageModel(
+                    message_id=message.message_id,
+                    chat_id=message.chat.id,
+                    user_id=user_id,
+                    username=message.from_user.username if message.from_user else None,
+                    full_name=message.from_user.full_name if message.from_user else "Unknown",
+                    text=message.text or "",
+                    message_type=self.get_message_type(message),
+                    is_team_member=is_team_member,
+                    timestamp=message.date,
+                    processed_for_sentiment=False
+                )
+                
+                db.session.add(message_record)
+                db.session.commit()
+                
+                logger.info(f"Saved message from {message_record.full_name} in chat {chat.title}")
             
         except Exception as e:
             logger.error(f"Error processing message {message.message_id}: {e}")
@@ -100,12 +111,10 @@ class TelegramMonitorBot:
             return "photo"
         elif message.document:
             return "document"
-        elif message.video:
-            return "video"
-        elif message.audio:
-            return "audio"
         elif message.voice:
             return "voice"
+        elif message.video:
+            return "video"
         elif message.sticker:
             return "sticker"
         else:
@@ -113,35 +122,25 @@ class TelegramMonitorBot:
     
     async def start_monitoring(self):
         """Start the bot monitoring"""
+        logger.info("Starting Telegram bot monitoring...")
         try:
-            await self.init_redis()
-            logger.info("Starting Telegram monitoring bot...")
-            
-            # Get bot info
-            bot_info = await self.bot.get_me()
-            logger.info(f"Bot started: @{bot_info.username}")
-            
-            # Start polling
             await self.dp.start_polling(self.bot)
-            
         except Exception as e:
-            logger.error(f"Error starting bot: {e}")
+            logger.error(f"Error in bot polling: {e}")
             raise
     
     async def stop_monitoring(self):
         """Stop the bot monitoring"""
+        logger.info("Stopping Telegram bot monitoring...")
         try:
-            if self.redis:
-                await self.redis.close()
             await self.bot.session.close()
-            logger.info("Bot monitoring stopped")
         except Exception as e:
             logger.error(f"Error stopping bot: {e}")
 
 
 async def main():
     """Main function to run the bot"""
-    bot = TelegramMonitorBot()
+    bot = SimpleTelegramBot()
     try:
         await bot.start_monitoring()
     except KeyboardInterrupt:
