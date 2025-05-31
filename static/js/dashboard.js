@@ -1,517 +1,342 @@
-// Dashboard JavaScript functionality
-class DashboardManager {
+// Enhanced Dashboard with Filters
+class FilteredDashboard {
     constructor() {
-        this.apiToken = null;
-        this.refreshInterval = 300000; // 5 minutes
-        this.autoRefreshTimer = null;
+        this.adminToken = null;
+        this.currentFilters = {
+            chat_id: '',
+            employee_id: '',
+            start_date: '',
+            end_date: ''
+        };
         this.charts = {};
-        this.initialized = false;
-        
         this.init();
     }
-    
+
     init() {
-        if (this.initialized) {
-            return;
-        }
-        this.initialized = true;
         this.setupEventListeners();
+        this.loadFilterOptions();
+        this.setDefaultDates();
         this.loadDashboardData();
-        this.startAutoRefresh();
     }
-    
-    getApiToken() {
-        // Get admin token from window variable set by server
-        if (window.ADMIN_TOKEN) {
-            return window.ADMIN_TOKEN;
-        }
-        
-        // Fallback to localStorage or prompt
-        let token = localStorage.getItem('adminToken');
-        if (!token) {
-            token = prompt('Enter admin token:');
-            if (token) {
-                localStorage.setItem('adminToken', token);
-            }
-        }
-        return token;
-    }
-    
+
     setupEventListeners() {
+        // Filters form submission
+        const filtersForm = document.getElementById('filtersForm');
+        if (filtersForm) {
+            filtersForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.applyFilters();
+            });
+        }
+
         // Refresh button
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.loadDashboardData();
-        });
-        
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadDashboardData();
+            });
+        }
+
         // Tab change events
         const tabs = document.querySelectorAll('#dashboardTabs button[data-bs-toggle="tab"]');
         tabs.forEach(tab => {
             tab.addEventListener('shown.bs.tab', (e) => {
-                this.handleTabChange(e.target.id);
+                const tabId = e.target.getAttribute('data-bs-target').replace('#', '');
+                this.handleTabChange(tabId);
             });
         });
+    }
+
+    setDefaultDates() {
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         
-        // Error modal retry
-        const retryBtn = document.querySelector('#errorModal .btn-primary');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => {
-                this.loadDashboardData();
-            });
-        }
-    }
-    
-    startAutoRefresh() {
-        this.autoRefreshTimer = setInterval(() => {
-            this.loadDashboardData(false); // Silent refresh
-        }, this.refreshInterval);
-    }
-    
-    stopAutoRefresh() {
-        if (this.autoRefreshTimer) {
-            clearInterval(this.autoRefreshTimer);
-            this.autoRefreshTimer = null;
-        }
-    }
-    
-    async loadDashboardData(showLoading = true) {
-        if (showLoading) {
-            this.showLoadingModal();
-        }
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
         
+        if (startDate && endDate) {
+            startDate.value = weekAgo.toISOString().split('T')[0];
+            endDate.value = today.toISOString().split('T')[0];
+            
+            this.currentFilters.start_date = startDate.value;
+            this.currentFilters.end_date = endDate.value;
+        }
+    }
+
+    async loadFilterOptions() {
         try {
-            if (!this.apiToken) {
-                this.apiToken = this.getApiToken();
-            }
-            
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-            
-            if (this.apiToken) {
-                // Ensure token contains only ASCII characters for HTTP headers
-                const cleanToken = this.apiToken.replace(/[^\x00-\x7F]/g, '').trim();
-                if (cleanToken) {
-                    headers['X-Admin-Token'] = cleanToken;
-                }
-            }
-            
-            const response = await fetch('/dashboard-data', {
-                headers: headers
+            const response = await fetch('/api/filter-options', {
+                headers: this.getAuthHeaders()
             });
             
             if (!response.ok) {
-                if (response.status === 401) {
-                    this.handleAuthError();
-                    return;
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error('Failed to load filter options');
             }
             
             const data = await response.json();
-            this.updateDashboard(data);
-            this.hideLoadingModal();
+            this.populateFilterOptions(data);
             
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            this.hideLoadingModal();
-            this.showError(error.message);
+            console.error('Error loading filter options:', error);
         }
     }
-    
-    updateDashboard(data) {
-        this.updateSummaryCards(data.summary);
-        this.updateAttentionAlerts(data.attention_chats);
-        this.updateActivityTab(data.activity);
-        this.updateSentimentTab(data.sentiment);
-        this.updateTeamTab(data.team_performance);
-        this.updateClientsTab(data.client_stats);
-        this.updateCommunicationsTab(data);
-        this.updateLastUpdated(data.last_updated);
+
+    populateFilterOptions(data) {
+        // Populate chat filter
+        const chatFilter = document.getElementById('chatFilter');
+        if (chatFilter && data.chats) {
+            chatFilter.innerHTML = '<option value="">Все чаты</option>';
+            data.chats.forEach(chat => {
+                const option = document.createElement('option');
+                option.value = chat.id;
+                option.textContent = chat.title;
+                chatFilter.appendChild(option);
+            });
+        }
+
+        // Populate employee filter
+        const employeeFilter = document.getElementById('employeeFilter');
+        if (employeeFilter && data.employees) {
+            employeeFilter.innerHTML = '<option value="">Все сотрудники</option>';
+            data.employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.id;
+                option.textContent = employee.name;
+                employeeFilter.appendChild(option);
+            });
+        }
     }
-    
-    updateSummaryCards(summary) {
-        const elements = {
-            'totalChats': summary.total_chats || 0,
-            'attentionChats': summary.chats_needing_attention || 0,
-            'avgResponse': this.formatTime(summary.avg_response_time),
-            'totalMessages': summary.total_messages || 0
-        };
+
+    applyFilters() {
+        // Get form values
+        this.currentFilters.chat_id = document.getElementById('chatFilter').value;
+        this.currentFilters.employee_id = document.getElementById('employeeFilter').value;
+        this.currentFilters.start_date = document.getElementById('startDate').value;
+        this.currentFilters.end_date = document.getElementById('endDate').value;
+
+        // Update period display
+        this.updatePeriodDisplay();
+
+        // Reload data with filters
+        this.loadDashboardData();
+    }
+
+    updatePeriodDisplay() {
+        const periodElement = document.getElementById('currentPeriod');
+        if (periodElement && this.currentFilters.start_date && this.currentFilters.end_date) {
+            periodElement.textContent = `Период: ${this.currentFilters.start_date} - ${this.currentFilters.end_date}`;
+        }
+    }
+
+    async loadDashboardData() {
+        try {
+            // Build query string
+            const params = new URLSearchParams();
+            Object.keys(this.currentFilters).forEach(key => {
+                if (this.currentFilters[key]) {
+                    params.append(key, this.currentFilters[key]);
+                }
+            });
+
+            const response = await fetch(`/api/filtered-dashboard-data?${params}`, {
+                headers: this.getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load dashboard data');
+            }
+
+            const data = await response.json();
+            this.updateDashboard(data);
+            this.updateLastUpdated();
+
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            this.showError('Ошибка загрузки данных: ' + error.message);
+        }
+    }
+
+    updateDashboard(data) {
+        // Update general statistics
+        this.updateGeneralStats(data.general_stats);
         
-        Object.entries(elements).forEach(([id, value]) => {
+        // Update employees tab
+        this.updateEmployeesTab(data.employees);
+        
+        // Update clients tab
+        this.updateClientsTab(data.clients);
+        
+        // Create charts based on current tab
+        const activeTab = document.querySelector('#dashboardTabs .nav-link.active');
+        if (activeTab) {
+            const tabId = activeTab.getAttribute('data-bs-target').replace('#', '');
+            this.handleTabChange(tabId);
+        }
+    }
+
+    updateGeneralStats(stats) {
+        // Update statistics cards
+        const elements = {
+            'totalMessagesStats': stats.total_messages,
+            'totalSymbolsStats': stats.total_symbols,
+            'teamMessagesStats': stats.team_messages,
+            'clientMessagesStats': stats.client_messages,
+            'avgResponseStats': `${stats.avg_response_time_minutes} мин`,
+            'maxResponseStats': `${stats.max_response_time_minutes} мин`
+        };
+
+        Object.keys(elements).forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.textContent = value;
-                element.classList.add('updated');
-                setTimeout(() => element.classList.remove('updated'), 1000);
+                element.textContent = elements[id];
             }
         });
-    }
-    
-    updateAttentionAlerts(attentionChats) {
-        const alertsContainer = document.getElementById('attentionAlerts');
-        const alertsRow = document.getElementById('attentionAlertsRow');
-        
-        if (!attentionChats || attentionChats.length === 0) {
-            alertsRow.style.display = 'none';
-            return;
+
+        // Update percentages
+        const teamPercent = document.getElementById('teamMessagesPercent');
+        if (teamPercent) {
+            teamPercent.textContent = `${stats.team_percentage}% от общего числа`;
         }
-        
-        alertsRow.style.display = 'block';
-        alertsContainer.innerHTML = '';
-        
-        attentionChats.forEach(chat => {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'attention-item';
-            
-            const reasons = chat.reasons.join(', ');
-            const responseTime = this.formatTime(chat.avg_response_time);
-            
-            alertDiv.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="mb-1">${this.escapeHtml(chat.chat_title)}</h6>
-                        <p class="mb-1 text-warning">${reasons}</p>
-                        <small class="text-muted">
-                            Avg Response: ${responseTime} | 
-                            Unanswered: ${chat.unanswered_percentage.toFixed(1)}%
-                        </small>
-                    </div>
-                    <span class="badge bg-danger">${chat.negative_messages} negative</span>
-                </div>
-            `;
-            
-            alertsContainer.appendChild(alertDiv);
-        });
-    }
-    
-    updateActivityTab(activityData) {
-        if (!activityData) return;
-        
-        // Update summary counts
-        document.getElementById('clientMessagesCount').textContent = activityData.client_messages || 0;
-        document.getElementById('teamMessagesCount').textContent = activityData.team_messages || 0;
-        
-        const totalMessages = activityData.total_messages || 0;
-        const responseRate = totalMessages > 0 ? 
-            ((activityData.team_messages || 0) / (activityData.client_messages || 1) * 100).toFixed(1) : 0;
-        document.getElementById('responseRate').textContent = `${responseRate}%`;
-        
-        // Create activity chart
-        this.createActivityChart(activityData.hourly_chart);
-    }
-    
-    updateSentimentTab(sentimentData) {
-        if (!sentimentData) return;
-        
-        this.createSentimentChart(sentimentData.distribution_chart);
-        this.createSentimentTrendChart(sentimentData.trend_chart);
-    }
-    
-    updateTeamTab(teamPerformance) {
-        const tableBody = document.getElementById('teamPerformanceTable');
-        tableBody.innerHTML = '';
-        
-        if (!teamPerformance || teamPerformance.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No team performance data available</td></tr>';
-            return;
+
+        const clientPercent = document.getElementById('clientMessagesPercent');
+        if (clientPercent) {
+            clientPercent.textContent = `${stats.client_percentage}% от общего числа`;
         }
-        
-        teamPerformance.forEach(member => {
-            const row = document.createElement('tr');
-            const responseTime = this.formatTime(member.avg_response_time);
-            const performance = this.getPerformanceRating(member.avg_response_time);
-            
-            row.innerHTML = `
-                <td>${this.escapeHtml(member.name)}</td>
-                <td>${this.escapeHtml(member.role)}</td>
-                <td>${member.message_count}</td>
-                <td>${responseTime}</td>
-                <td><span class="badge ${performance.class}">${performance.label}</span></td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
     }
-    
-    updateClientsTab(clientStats) {
-        if (!clientStats) return;
-        
-        document.getElementById('uniqueClients').textContent = clientStats.total_unique_clients || 0;
-        
+
+    updateEmployeesTab(employees) {
+        // Create employee activity chart
+        if (employees && employees.length > 0) {
+            this.createEmployeeChart(employees);
+        }
+    }
+
+    updateClientsTab(clients) {
         const tableBody = document.getElementById('activeClientsTable');
+        if (!tableBody || !clients) return;
+
         tableBody.innerHTML = '';
-        
-        if (!clientStats.most_active || clientStats.most_active.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No client data available</td></tr>';
-            return;
+
+        // Update client statistics
+        const uniqueCount = document.getElementById('uniqueClientsCount');
+        const totalMessages = document.getElementById('totalClientMessages');
+        const avgResponse = document.getElementById('avgClientResponseTime');
+
+        if (uniqueCount) uniqueCount.textContent = clients.length;
+        if (totalMessages) {
+            const total = clients.reduce((sum, client) => sum + client.message_count, 0);
+            totalMessages.textContent = total;
         }
-        
-        clientStats.most_active.forEach(client => {
+
+        // Populate table
+        clients.slice(0, 10).forEach(client => {
             const row = document.createElement('tr');
-            const lastMessage = new Date(client.last_message).toLocaleString();
-            
             row.innerHTML = `
                 <td>${this.escapeHtml(client.name)}</td>
                 <td>${client.message_count}</td>
-                <td>${lastMessage}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
             `;
-            
             tableBody.appendChild(row);
         });
     }
-    
-    updateCommunicationsTab(data) {
-        if (!data.activity) return;
-        
-        const clientMessages = data.activity.client_messages || 0;
-        const teamMessages = data.activity.team_messages || 0;
-        const totalMessages = data.activity.total_messages || 0;
-        
-        // Update communication metrics
-        const ratio = teamMessages > 0 ? `${(clientMessages / teamMessages).toFixed(1)}:1` : 'N/A';
-        document.getElementById('clientTeamRatio').textContent = ratio;
-        
-        const messagesPerHour = (totalMessages / 24).toFixed(1);
-        document.getElementById('messagesPerHour').textContent = messagesPerHour;
-        
-        // Find peak hour from activity data
-        const hourlyData = data.activity.hourly_chart;
-        if (hourlyData && hourlyData.labels && hourlyData.datasets) {
-            const peakHour = this.findPeakHour(hourlyData);
-            document.getElementById('peakHour').textContent = peakHour;
-        }
-        
-        this.createCommunicationsChart(clientMessages, teamMessages);
-    }
-    
-    createActivityChart(chartData) {
-        if (!chartData || !chartData.labels) return;
-        
-        const trace1 = {
-            x: chartData.labels,
-            y: chartData.datasets[0].data,
-            name: 'Client Messages',
-            type: 'bar',
-            marker: { color: 'rgba(54, 162, 235, 0.6)' }
-        };
-        
-        const trace2 = {
-            x: chartData.labels,
-            y: chartData.datasets[1].data,
-            name: 'Team Messages',
-            type: 'bar',
-            marker: { color: 'rgba(75, 192, 192, 0.6)' }
-        };
-        
-        const layout = {
-            title: 'Hourly Message Activity',
-            xaxis: { title: 'Hour' },
-            yaxis: { title: 'Messages' },
-            barmode: 'stack',
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            font: { color: '#fff' }
-        };
-        
-        Plotly.newPlot('activityChart', [trace1, trace2], layout, {responsive: true});
-    }
-    
-    createSentimentChart(chartData) {
-        if (!chartData || !chartData.labels) return;
-        
+
+    createEmployeeChart(employees) {
+        const chartDiv = document.getElementById('employeeActivityChart');
+        if (!chartDiv || !employees.length) return;
+
         const trace = {
-            labels: chartData.labels,
-            values: chartData.data,
-            type: 'pie',
+            x: employees.map(emp => emp.name),
+            y: employees.map(emp => emp.message_count),
+            type: 'bar',
+            name: 'Сообщения',
             marker: {
-                colors: chartData.backgroundColor
+                color: 'rgba(54, 162, 235, 0.8)'
             }
         };
-        
+
         const layout = {
-            title: 'Sentiment Distribution',
-            plot_bgcolor: 'rgba(0,0,0,0)',
+            title: 'Активность сотрудников',
+            xaxis: { title: 'Сотрудники' },
+            yaxis: { title: 'Количество сообщений' },
             paper_bgcolor: 'rgba(0,0,0,0)',
-            font: { color: '#fff' }
-        };
-        
-        Plotly.newPlot('sentimentChart', [trace], layout, {responsive: true});
-    }
-    
-    createSentimentTrendChart(chartData) {
-        if (!chartData || !chartData.labels) return;
-        
-        const trace = {
-            x: chartData.labels,
-            y: chartData.data,
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: { color: 'rgba(75, 192, 192, 1)' },
-            marker: { color: 'rgba(75, 192, 192, 0.6)' }
-        };
-        
-        const layout = {
-            title: 'Sentiment Trend',
-            xaxis: { title: 'Date' },
-            yaxis: { title: 'Average Sentiment', range: [-1, 1] },
             plot_bgcolor: 'rgba(0,0,0,0)',
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            font: { color: '#fff' }
+            font: { color: '#ffffff' }
         };
-        
-        Plotly.newPlot('sentimentTrendChart', [trace], layout, {responsive: true});
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot(chartDiv, [trace], layout, config);
+        this.charts.employeeChart = chartDiv;
     }
-    
-    createCommunicationsChart(clientMessages, teamMessages) {
-        const ctx = document.getElementById('communicationsChart');
-        if (!ctx) return;
-        
-        // Destroy existing chart if it exists
-        if (this.charts.communications) {
-            this.charts.communications.destroy();
-            delete this.charts.communications;
-        }
-        
-        // Remove any existing Chart.js instances attached to this canvas
-        if (Chart.getChart(ctx)) {
-            Chart.getChart(ctx).destroy();
-        }
-        
-        this.charts.communications = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Client Messages', 'Team Messages'],
-                datasets: [{
-                    data: [clientMessages, teamMessages],
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.6)',
-                        'rgba(75, 192, 192, 0.6)'
-                    ],
-                    borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(75, 192, 192, 1)'
-                    ],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#fff'
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
+
     handleTabChange(tabId) {
-        // Resize charts when tab becomes visible
-        setTimeout(() => {
-            if (this.charts.communications) {
-                this.charts.communications.resize();
-            }
-            // Trigger Plotly resize
-            const plotlyDivs = ['activityChart', 'sentimentChart', 'sentimentTrendChart'];
-            plotlyDivs.forEach(id => {
-                const div = document.getElementById(id);
-                if (div && div.style.display !== 'none') {
-                    Plotly.Plots.resize(div);
-                }
-            });
-        }, 100);
+        // Handle specific tab activations
+        switch (tabId) {
+            case 'employees':
+                // Employee chart is already created
+                break;
+            case 'clients':
+                // Clients table is already populated
+                break;
+            case 'activity':
+                // You can add activity chart here
+                break;
+            case 'sentiment':
+                // You can add sentiment chart here
+                break;
+            case 'communications':
+                // You can add communications chart here
+                break;
+        }
     }
-    
-    updateLastUpdated(timestamp) {
+
+    getAuthHeaders() {
+        const token = this.getAdminToken();
+        return token ? { 'X-Admin-Token': token } : {};
+    }
+
+    getAdminToken() {
+        // Try to get from global variable first
+        if (window.adminToken) {
+            return window.adminToken;
+        }
+        
+        // Fallback to localStorage
+        return localStorage.getItem('adminToken');
+    }
+
+    updateLastUpdated() {
         const element = document.getElementById('lastUpdated');
-        if (element && timestamp) {
-            const date = new Date(timestamp);
-            element.textContent = date.toLocaleTimeString();
+        if (element) {
+            element.textContent = new Date().toLocaleString('ru-RU');
         }
     }
-    
-    formatTime(seconds) {
-        if (!seconds || seconds === null) return 'N/A';
-        
-        if (seconds < 60) {
-            return `${seconds}s`;
-        } else if (seconds < 3600) {
-            return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-        } else {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            return `${hours}h ${minutes}m`;
-        }
+
+    showError(message) {
+        // You can implement a toast notification or alert here
+        console.error(message);
+        alert(message);
     }
-    
-    getPerformanceRating(responseTime) {
-        if (!responseTime) return { label: 'N/A', class: 'bg-secondary' };
-        
-        if (responseTime < 300) { // 5 minutes
-            return { label: 'Excellent', class: 'bg-success' };
-        } else if (responseTime < 900) { // 15 minutes
-            return { label: 'Good', class: 'bg-info' };
-        } else if (responseTime < 1800) { // 30 minutes
-            return { label: 'Average', class: 'bg-warning' };
-        } else {
-            return { label: 'Poor', class: 'bg-danger' };
-        }
-    }
-    
-    findPeakHour(hourlyData) {
-        if (!hourlyData.datasets || !hourlyData.datasets[0]) return 'N/A';
-        
-        const data = hourlyData.datasets[0].data;
-        const maxIndex = data.indexOf(Math.max(...data));
-        return hourlyData.labels[maxIndex] || 'N/A';
-    }
-    
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
-    showLoadingModal() {
-        const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
-        modal.show();
-    }
-    
-    hideLoadingModal() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('loadingModal'));
-        if (modal) {
-            modal.hide();
-        }
-    }
-    
-    showError(message) {
-        document.getElementById('errorMessage').textContent = message;
-        const modal = new bootstrap.Modal(document.getElementById('errorModal'));
-        modal.show();
-    }
-    
-    handleAuthError() {
-        localStorage.removeItem('adminToken');
-        alert('Authentication failed. Please refresh the page and enter a valid token.');
-        location.reload();
-    }
 }
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.dashboardManager = new DashboardManager();
-});
-
-// Handle page visibility changes to pause/resume auto-refresh
-document.addEventListener('visibilitychange', () => {
-    if (window.dashboardManager) {
-        if (document.hidden) {
-            window.dashboardManager.stopAutoRefresh();
-        } else {
-            window.dashboardManager.startAutoRefresh();
-            window.dashboardManager.loadDashboardData(false);
-        }
+    // Set admin token from template if available
+    if (typeof adminToken !== 'undefined') {
+        window.adminToken = adminToken;
     }
+    
+    // Initialize dashboard
+    new FilteredDashboard();
 });
