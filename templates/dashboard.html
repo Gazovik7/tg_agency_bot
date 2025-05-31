@@ -365,6 +365,9 @@
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     
     <script>
+        // Set admin token from server
+        window.ADMIN_TOKEN = '{{ admin_token }}';
+        
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
             window.dashboardManager = new DashboardManager();

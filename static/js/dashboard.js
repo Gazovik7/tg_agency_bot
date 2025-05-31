@@ -16,7 +16,12 @@ class DashboardManager {
     }
     
     getApiToken() {
-        // Get admin token from environment or prompt user
+        // Get admin token from window variable set by server
+        if (window.ADMIN_TOKEN) {
+            return window.ADMIN_TOKEN;
+        }
+        
+        // Fallback to localStorage or prompt
         let token = localStorage.getItem('adminToken');
         if (!token) {
             token = prompt('Enter admin token:');

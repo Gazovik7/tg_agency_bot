@@ -33,7 +33,9 @@ def verify_admin_token():
 @app.route('/')
 def index():
     """Main dashboard page"""
-    return render_template('dashboard.html')
+    import os
+    admin_token = os.getenv("ADMIN_TOKEN")
+    return render_template('dashboard.html', admin_token=admin_token)
 
 
 @app.route('/dashboard-data')
