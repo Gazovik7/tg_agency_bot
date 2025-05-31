@@ -52,6 +52,118 @@
 
     <!-- Main Content -->
     <div class="container-fluid mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2><i class="fas fa-chart-line"></i> Аналитика Тестовое Агентство</h2>
+                        <p class="text-muted">Детальная статистика коммуникаций с клиентами</p>
+                    </div>
+                    <div class="badge bg-primary fs-6" id="currentPeriod">
+                        Период: 2025-05-01 - 2025-05-25
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Фильтры</h5>
+                        <form id="filtersForm">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="chatFilter" class="form-label">Чат:</label>
+                                    <select class="form-select" id="chatFilter" name="chat_id">
+                                        <option value="">Все чаты</option>
+                                        <!-- Options will be populated via JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="employeeFilter" class="form-label">Сотрудник:</label>
+                                    <select class="form-select" id="employeeFilter" name="employee_id">
+                                        <option value="">Все сотрудники</option>
+                                        <!-- Options will be populated via JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="startDate" class="form-label">Начальная дата:</label>
+                                    <input type="date" class="form-control" id="startDate" name="start_date">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="endDate" class="form-label">Конечная дата:</label>
+                                    <input type="date" class="form-control" id="endDate" name="end_date">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter"></i> Применить фильтры
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- General Statistics -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Общая статистика</h5>
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-primary" id="totalMessagesStats">0</h3>
+                                    <small class="text-muted">Всего сообщений</small>
+                                    <div class="small text-success mt-1" id="totalMessagesPeriod">За выбранный период</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-info" id="totalSymbolsStats">0</h3>
+                                    <small class="text-muted">Всего символов</small>
+                                    <div class="small text-success mt-1" id="totalSymbolsDesc">Общий объем коммуникаций</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-warning" id="teamMessagesStats">0</h3>
+                                    <small class="text-muted">Сообщения команды</small>
+                                    <div class="small text-success mt-1" id="teamMessagesPercent">56% от общего числа</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-success" id="clientMessagesStats">0</h3>
+                                    <small class="text-muted">Сообщения клиентов</small>
+                                    <div class="small text-success mt-1" id="clientMessagesPercent">44% от общего числа</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-primary" id="avgResponseStats">0 мин</h3>
+                                    <small class="text-muted">Среднее время ответа</small>
+                                    <div class="small text-success mt-1" id="avgResponseDesc">Время реакции команды</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h3 class="mb-1 text-danger" id="maxResponseStats">0 мин</h3>
+                                    <small class="text-muted">Максимальное время ответа</small>
+                                    <div class="small text-success mt-1" id="maxResponseDesc">Самый долгий ответ</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Summary Cards -->
         <div class="row mb-4">
             <div class="col-md-3">
@@ -133,41 +245,105 @@
         <!-- Tabs -->
         <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button">
-                    <i class="fas fa-chart-bar"></i> Activity
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="sentiment-tab" data-bs-toggle="tab" data-bs-target="#sentiment" type="button">
-                    <i class="fas fa-smile"></i> Sentiment
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button">
-                    <i class="fas fa-users"></i> Team Performance
+                <button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button">
+                    <i class="fas fa-users"></i> Сотрудники
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" type="button">
-                    <i class="fas fa-user-friends"></i> Clients
+                    <i class="fas fa-user-friends"></i> Клиенты
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button">
+                    <i class="fas fa-chart-bar"></i> Активность
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sentiment-tab" data-bs-toggle="tab" data-bs-target="#sentiment" type="button">
+                    <i class="fas fa-smile"></i> Тональность
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="communications-tab" data-bs-toggle="tab" data-bs-target="#communications" type="button">
-                    <i class="fas fa-comments"></i> Communications
+                    <i class="fas fa-comments"></i> Коммуникации
                 </button>
             </li>
         </ul>
 
         <!-- Tab Content -->
         <div class="tab-content mt-3" id="dashboardTabContent">
-            <!-- Activity Tab -->
-            <div class="tab-pane fade show active" id="activity" role="tabpanel">
+            <!-- Employees Tab -->
+            <div class="tab-pane fade show active" id="employees" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Активность сотрудников</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="employeeActivityChart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clients Tab -->
+            <div class="tab-pane fade" id="clients" role="tabpanel">
                 <div class="row">
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Message Activity (24 Hours)</h5>
+                                <h5>Наиболее активные клиенты</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Клиент</th>
+                                                <th>Сообщений</th>
+                                                <th>Последнее сообщение</th>
+                                                <th>Среднее время ответа</th>
+                                                <th>Чат</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="activeClientsTable">
+                                            <!-- Active clients data will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Статистика клиентов</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <h6>Уникальных клиентов</h6>
+                                    <h3 class="text-primary" id="uniqueClientsCount">0</h3>
+                                </div>
+                                <div class="text-center mb-3">
+                                    <h6>Всего сообщений от клиентов</h6>
+                                    <h3 class="text-info" id="totalClientMessages">0</h3>
+                                </div>
+                                <div class="text-center">
+                                    <h6>Среднее время ответа</h6>
+                                    <h3 class="text-success" id="avgClientResponseTime">0 мин</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div class="tab-pane fade" id="activity" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Активность сообщений (24 часа)</h5>
                             </div>
                             <div class="card-body">
                                 <div id="activityChart" style="height: 400px;"></div>
@@ -177,20 +353,20 @@
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
-                                <h5>Activity Summary</h5>
+                                <h5>Сводка по активности</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row text-center">
                                     <div class="col-12 mb-3">
-                                        <h6>Client Messages</h6>
+                                        <h6>Сообщения клиентов</h6>
                                         <h4 class="text-primary" id="clientMessagesCount">0</h4>
                                     </div>
                                     <div class="col-12 mb-3">
-                                        <h6>Team Messages</h6>
+                                        <h6>Сообщения команды</h6>
                                         <h4 class="text-success" id="teamMessagesCount">0</h4>
                                     </div>
                                     <div class="col-12">
-                                        <h6>Response Rate</h6>
+                                        <h6>Процент ответов</h6>
                                         <h4 class="text-info" id="responseRate">0%</h4>
                                     </div>
                                 </div>

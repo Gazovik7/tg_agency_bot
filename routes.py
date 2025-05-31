@@ -653,6 +653,138 @@ def api_chat_detailed_stats(chat_id):
         return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route('/api/filtered-dashboard-data')
+def filtered_dashboard_data():
+    """API endpoint for filtered dashboard data"""
+    try:
+        # Get filter parameters
+        chat_id = request.args.get('chat_id', type=int)
+        employee_id = request.args.get('employee_id', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Default time range (last 7 days if no dates provided)
+        if start_date and end_date:
+            start_time = datetime.strptime(start_date, '%Y-%m-%d')
+            end_time = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        else:
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(days=7)
+        
+        # Build query filters
+        query_filters = [
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time
+        ]
+        
+        if chat_id:
+            query_filters.append(Message.chat_id == chat_id)
+        
+        if employee_id:
+            query_filters.append(Message.user_id == employee_id)
+        
+        # Get filtered messages
+        messages = db.session.query(Message).filter(*query_filters).all()
+        
+        # Calculate statistics
+        total_messages = len(messages)
+        client_messages = len([m for m in messages if not m.is_team_member])
+        team_messages = len([m for m in messages if m.is_team_member])
+        total_symbols = sum(len(m.text or '') for m in messages)
+        
+        # Calculate response times
+        response_times = [m.response_time_seconds for m in messages if m.response_time_seconds is not None]
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        max_response_time = max(response_times) if response_times else 0
+        
+        # Get employee activity data
+        employee_stats = db.session.query(
+            Message.user_id,
+            Message.full_name,
+            Message.is_team_member,
+            func.count(Message.id).label('message_count'),
+            func.sum(func.length(Message.text)).label('character_count')
+        ).filter(*query_filters).group_by(
+            Message.user_id, Message.full_name, Message.is_team_member
+        ).all()
+        
+        employees_data = []
+        clients_data = []
+        
+        for emp in employee_stats:
+            emp_data = {
+                'user_id': emp.user_id,
+                'name': emp.full_name or 'Unknown',
+                'message_count': emp.message_count,
+                'character_count': emp.character_count or 0
+            }
+            
+            if emp.is_team_member:
+                employees_data.append(emp_data)
+            else:
+                clients_data.append(emp_data)
+        
+        # Sort by message count
+        employees_data.sort(key=lambda x: x['message_count'], reverse=True)
+        clients_data.sort(key=lambda x: x['message_count'], reverse=True)
+        
+        return jsonify({
+            'general_stats': {
+                'total_messages': total_messages,
+                'client_messages': client_messages,
+                'team_messages': team_messages,
+                'total_symbols': total_symbols,
+                'avg_response_time_minutes': round(avg_response_time / 60) if avg_response_time else 0,
+                'max_response_time_minutes': round(max_response_time / 60) if max_response_time else 0,
+                'client_percentage': round((client_messages / total_messages * 100), 1) if total_messages else 0,
+                'team_percentage': round((team_messages / total_messages * 100), 1) if total_messages else 0
+            },
+            'employees': employees_data,
+            'clients': clients_data,
+            'period': {
+                'start': start_time.strftime('%Y-%m-%d'),
+                'end': end_time.strftime('%Y-%m-%d')
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting filtered dashboard data: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/filter-options')
+def filter_options():
+    """Get available filter options (chats and employees)"""
+    try:
+        # Get active chats
+        chats = db.session.query(Chat).filter_by(is_active=True).all()
+        chats_data = [{'id': chat.id, 'title': chat.title} for chat in chats]
+        
+        # Get team members
+        team_members = db.session.query(
+            Message.user_id,
+            Message.full_name
+        ).filter(
+            Message.is_team_member == True
+        ).group_by(
+            Message.user_id, Message.full_name
+        ).all()
+        
+        employees_data = [
+            {'id': emp.user_id, 'name': emp.full_name or 'Unknown'}
+            for emp in team_members
+        ]
+        
+        return jsonify({
+            'chats': chats_data,
+            'employees': employees_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting filter options: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
