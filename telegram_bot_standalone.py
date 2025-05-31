@@ -67,7 +67,7 @@ class StandaloneTelegramBot:
             is_team_member = await self.is_team_member(user_id)
             
             # Get message text and type
-            text = message.text or message.caption or ""
+            message_text = message.text or message.caption or ""
             message_type = self.get_message_type(message)
             
             # Save chat if not exists
@@ -103,7 +103,7 @@ class StandaloneTelegramBot:
                 "user_id": user_id,
                 "username": username,
                 "full_name": full_name,
-                "text": text,
+                "text": message_text,
                 "message_type": message_type,
                 "is_team_member": is_team_member,
                 "timestamp": datetime.fromtimestamp(message.date.timestamp()),
