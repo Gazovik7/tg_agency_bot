@@ -146,3 +146,40 @@ def webhook_status():
         'webhook_url': '/webhook/telegram',
         'bot_configured': bool(webhook_handler.bot_token)
     })
+
+@app.route('/webhook/test', methods=['POST'])
+def test_webhook():
+    """Тестовый endpoint для проверки обработки сообщений"""
+    try:
+        # Имитация сообщения от пользователя для тестирования
+        test_message = {
+            "update_id": 999999,
+            "message": {
+                "message_id": 999999,
+                "from": {
+                    "id": 265739915,  # Ваш ID
+                    "first_name": "Иван",
+                    "last_name": "Смирнов",
+                    "username": "test_user"
+                },
+                "chat": {
+                    "id": -1001234567891,  # Тестовый чат ID
+                    "title": "Тест Webhook",
+                    "type": "supergroup"
+                },
+                "date": 1700000000,
+                "text": "Тестовое сообщение через webhook"
+            }
+        }
+        
+        # Обрабатываем тестовое сообщение
+        success = webhook_handler.process_webhook_message(test_message)
+        
+        if success:
+            return jsonify({'status': 'ok', 'message': 'Test message processed'}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Processing failed'}), 500
+            
+    except Exception as e:
+        logger.error(f"Ошибка тестового webhook: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
