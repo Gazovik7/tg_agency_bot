@@ -139,6 +139,8 @@ class FilteredDashboard {
 
     async loadDashboardData() {
         try {
+            console.log('Loading dashboard data with filters:', this.currentFilters);
+            
             // Build query string
             const params = new URLSearchParams();
             Object.keys(this.currentFilters).forEach(key => {
@@ -147,15 +149,24 @@ class FilteredDashboard {
                 }
             });
 
-            const response = await fetch(`/api/filtered-dashboard-data?${params}`, {
+            const url = `/api/filtered-dashboard-data?${params}`;
+            console.log('Request URL:', url);
+            console.log('Auth headers:', this.getAuthHeaders());
+
+            const response = await fetch(url, {
                 headers: this.getAuthHeaders()
             });
 
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
-                throw new Error('Failed to load dashboard data');
+                const errorText = await response.text();
+                console.error('Response error:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
             const data = await response.json();
+            console.log('Received data:', data);
             this.updateDashboard(data);
             this.updateLastUpdated();
 
