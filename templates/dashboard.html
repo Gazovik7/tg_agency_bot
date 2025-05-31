@@ -366,7 +366,7 @@
     
     <script>
         // Set admin token from server
-        window.ADMIN_TOKEN = '{{ admin_token }}';
+        window.ADMIN_TOKEN = {{ admin_token|tojson }};
         
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
