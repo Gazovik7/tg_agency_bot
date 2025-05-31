@@ -68,7 +68,6 @@ body {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   transition: var(--transition);
-  border: none;
 }
 
 .card:hover {
@@ -215,7 +214,6 @@ body {
   border-bottom: 2px solid transparent;
   font-weight: 500;
   transition: var(--transition);
-  color: var(--gray-600);
 }
 
 .tab-item:hover {
@@ -324,7 +322,7 @@ body {
   border-radius: 50rem;
 }
 
-.bg-primary {
+.badge-primary {
   color: white;
   background-color: var(--primary-color);
 }
@@ -344,107 +342,232 @@ body {
   background-color: var(--danger-color);
 }
 
-.attention-card {
-  border-left: 4px solid var(--danger-color);
+.conversation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.attention-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.attention-item {
+.conversation-item {
   padding: 1rem;
-  background-color: var(--gray-100);
+  margin-bottom: 1rem;
   border-radius: var(--border-radius);
-  border-left: 4px solid var(--warning-color);
+  background-color: white;
+  border: 1px solid var(--gray-300);
+  transition: var(--transition);
 }
 
-.attention-item.critical {
-  border-left-color: var(--danger-color);
+.conversation-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
 }
 
-.attention-header {
+.conversation-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
 
-.attention-title {
-  font-size: 1rem;
+.conversation-title {
   font-weight: 600;
   color: var(--gray-800);
 }
 
-.attention-time {
+.conversation-meta {
   font-size: 0.875rem;
   color: var(--gray-600);
 }
 
-.attention-body {
+.conversation-body {
   margin-bottom: 0.5rem;
 }
 
-.attention-stat {
+.conversation-footer {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
-}
-
-.attention-label {
+  align-items: center;
   font-size: 0.875rem;
   color: var(--gray-600);
 }
 
-.attention-value {
+.staff-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.staff-card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.staff-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
+}
+
+.staff-header {
+  padding: 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.staff-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.staff-username {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.staff-body {
+  padding: 1.5rem;
+}
+
+.staff-stat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.staff-stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.staff-stat-value {
   font-weight: 600;
   color: var(--gray-800);
 }
 
-/* Navigation */
-.navbar {
-  background-color: var(--dark-color) !important;
+.progress {
+  height: 0.5rem;
+  background-color: var(--gray-200);
+  border-radius: 50rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 50rem;
+}
+
+/* Стили для сообщений */
+.conversation-container {
+  margin-bottom: 2rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.conversation-chat-title {
+  padding: 1rem;
+  background-color: var(--gray-100);
   border-bottom: 1px solid var(--gray-300);
-}
-
-.navbar-brand {
+  font-size: 1.1rem;
   font-weight: 600;
-  color: white !important;
 }
 
-.nav-link {
-  color: var(--gray-300) !important;
-  transition: var(--transition);
+.conversation-messages {
+  padding: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
-.nav-link:hover {
-  color: white !important;
+.message {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  max-width: 80%;
 }
 
-.navbar-text {
-  color: var(--gray-400) !important;
+.message-team {
+  background-color: var(--primary-color);
+  color: white;
+  margin-left: auto;
 }
 
-/* Responsive design */
+.message-client {
+  background-color: var(--gray-200);
+  color: var(--gray-800);
+  margin-right: auto;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.message-username {
+  font-weight: 600;
+}
+
+.message-time {
+  opacity: 0.8;
+}
+
+.message-body {
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+
+.message-footer {
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.message-sentiment {
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.sentiment-positive {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #2e7d32;
+}
+
+.sentiment-negative {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #c62828;
+}
+
+.sentiment-neutral {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: #ef6c00;
+}
+
+.message-team .message-sentiment {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
 @media (max-width: 768px) {
-  .container {
-    padding: 0.5rem;
-  }
-  
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+  .grid {
+    grid-template-columns: 1fr;
   }
   
   .filters-container {
     grid-template-columns: 1fr;
   }
   
-  .grid {
+  .staff-list {
     grid-template-columns: 1fr;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
   .tabs {
@@ -452,8 +575,6 @@ body {
   }
   
   .tab-item {
-    flex: 1;
-    text-align: center;
-    min-width: 120px;
+    padding: 0.5rem 1rem;
   }
 }
