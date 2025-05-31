@@ -1,15 +1,20 @@
 // Dashboard JavaScript functionality
 class DashboardManager {
     constructor() {
-        this.apiToken = this.getApiToken();
+        this.apiToken = null;
         this.refreshInterval = 300000; // 5 minutes
         this.autoRefreshTimer = null;
         this.charts = {};
+        this.initialized = false;
         
         this.init();
     }
     
     init() {
+        if (this.initialized) {
+            return;
+        }
+        this.initialized = true;
         this.setupEventListeners();
         this.loadDashboardData();
         this.startAutoRefresh();
@@ -359,9 +364,14 @@ class DashboardManager {
         const ctx = document.getElementById('communicationsChart');
         if (!ctx) return;
         
+        // Destroy existing chart if it exists
         if (this.charts.communications) {
             this.charts.communications.destroy();
+            this.charts.communications = null;
         }
+        
+        // Clear the canvas
+        ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
         
         this.charts.communications = new Chart(ctx, {
             type: 'doughnut',

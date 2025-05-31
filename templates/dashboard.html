@@ -368,10 +368,18 @@
         // Set admin token from server
         window.ADMIN_TOKEN = {{ admin_token|tojson }};
         
-        // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            window.dashboardManager = new DashboardManager();
-        });
+        // Prevent multiple initialization
+        if (!window.dashboardManager) {
+            // Initialize dashboard when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                // Wait for all scripts to load
+                setTimeout(function() {
+                    if (typeof DashboardManager !== 'undefined') {
+                        window.dashboardManager = new DashboardManager();
+                    }
+                }, 100);
+            });
+        }
     </script>
 </body>
 </html>
