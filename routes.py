@@ -379,6 +379,280 @@ def health_check():
         }), 500
 
 
+@app.route('/chat-management')
+def chat_management():
+    """Chat management page"""
+    import os
+    admin_token = os.getenv("ADMIN_TOKEN")
+    return render_template('chat_management.html', admin_token=admin_token)
+
+
+@app.route('/api/chats-management')
+def api_chats_management():
+    """API endpoint for chat management data"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Получаем все чаты с участниками и статистикой
+        chats_data = []
+        
+        chats = Chat.query.filter_by(is_active=True).all()
+        
+        for chat in chats:
+            # Получаем уникальных участников чата
+            users_query = db.session.query(
+                Message.user_id,
+                Message.username,
+                Message.full_name,
+                Message.is_team_member,
+                func.count(Message.id).label('message_count'),
+                func.sum(func.length(Message.text)).label('character_count')
+            ).filter(
+                Message.chat_id == chat.id
+            ).group_by(
+                Message.user_id,
+                Message.username, 
+                Message.full_name,
+                Message.is_team_member
+            ).all()
+            
+            users = []
+            total_messages = 0
+            team_messages = 0
+            client_messages = 0
+            
+            for user in users_query:
+                total_messages += user.message_count
+                if user.is_team_member:
+                    team_messages += user.message_count
+                else:
+                    client_messages += user.message_count
+                
+                users.append({
+                    'user_id': user.user_id,
+                    'username': user.username,
+                    'full_name': user.full_name,
+                    'is_team_member': user.is_team_member,
+                    'message_count': user.message_count,
+                    'character_count': user.character_count or 0
+                })
+            
+            chats_data.append({
+                'id': chat.id,
+                'title': chat.title,
+                'chat_type': chat.chat_type,
+                'users': users,
+                'stats': {
+                    'total_messages': total_messages,
+                    'team_messages': team_messages,
+                    'client_messages': client_messages
+                }
+            })
+        
+        return jsonify({'chats': chats_data})
+        
+    except Exception as e:
+        logger.error(f"Error getting chats management data: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/chat-users/<int:chat_id>')
+def api_chat_users(chat_id):
+    """Get users for specific chat"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        chat = Chat.query.get_or_404(chat_id)
+        
+        # Получаем участников чата
+        users_query = db.session.query(
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            Message.is_team_member,
+            func.count(Message.id).label('message_count')
+        ).filter(
+            Message.chat_id == chat_id
+        ).group_by(
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            Message.is_team_member
+        ).all()
+        
+        users = []
+        for user in users_query:
+            users.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'is_team_member': user.is_team_member,
+                'message_count': user.message_count
+            })
+        
+        return jsonify({
+            'chat': {
+                'id': chat.id,
+                'title': chat.title
+            },
+            'users': users
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting chat users: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/chat-team/<int:chat_id>', methods=['POST'])
+def api_update_chat_team(chat_id):
+    """Update team members for specific chat"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data or 'team_members' not in data:
+            return jsonify({"error": "Invalid data"}), 400
+        
+        # Обновляем статус участников команды
+        for member in data['team_members']:
+            user_id = member['user_id']
+            is_team_member = member['is_team_member']
+            
+            # Обновляем все сообщения этого пользователя в данном чате
+            Message.query.filter_by(
+                chat_id=chat_id,
+                user_id=user_id
+            ).update({'is_team_member': is_team_member})
+        
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Team members updated successfully"})
+        
+    except Exception as e:
+        logger.error(f"Error updating chat team: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/chat-details')
+def chat_details():
+    """Chat details page"""
+    import os
+    admin_token = os.getenv("ADMIN_TOKEN")
+    return render_template('chat_details.html', admin_token=admin_token)
+
+
+@app.route('/api/chat-stats/<int:chat_id>')
+def api_chat_detailed_stats(chat_id):
+    """Get detailed statistics for specific chat"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        chat = Chat.query.get_or_404(chat_id)
+        hours = request.args.get('hours', 24, type=int)
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+        
+        # Статистика по участникам
+        users_stats = db.session.query(
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            Message.is_team_member,
+            func.count(Message.id).label('message_count'),
+            func.sum(func.length(Message.text)).label('character_count'),
+            func.avg(func.length(Message.text)).label('avg_message_length')
+        ).filter(
+            Message.chat_id == chat_id,
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time
+        ).group_by(
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            Message.is_team_member
+        ).all()
+        
+        # Почасовая активность
+        hourly_stats = db.session.query(
+            func.date_trunc('hour', Message.timestamp).label('hour'),
+            func.count(func.case([(Message.is_team_member == True, 1)])).label('team_messages'),
+            func.count(func.case([(Message.is_team_member == False, 1)])).label('client_messages'),
+            func.sum(func.case([(Message.is_team_member == True, func.length(Message.text))])).label('team_characters'),
+            func.sum(func.case([(Message.is_team_member == False, func.length(Message.text))])).label('client_characters')
+        ).filter(
+            Message.chat_id == chat_id,
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time
+        ).group_by('hour').order_by('hour').all()
+        
+        users_data = []
+        team_total_messages = 0
+        client_total_messages = 0
+        team_total_characters = 0
+        client_total_characters = 0
+        
+        for user in users_stats:
+            user_data = {
+                'user_id': user.user_id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'is_team_member': user.is_team_member,
+                'message_count': user.message_count,
+                'character_count': user.character_count or 0,
+                'avg_message_length': round(user.avg_message_length or 0, 1)
+            }
+            users_data.append(user_data)
+            
+            if user.is_team_member:
+                team_total_messages += user.message_count
+                team_total_characters += user.character_count or 0
+            else:
+                client_total_messages += user.message_count
+                client_total_characters += user.character_count or 0
+        
+        # Форматируем почасовые данные
+        hourly_data = []
+        for hour in hourly_stats:
+            hourly_data.append({
+                'hour': format_configured_time(hour.hour, '%H:00') if format_configured_time(hour.hour, '%H:00') else hour.hour.strftime('%H:00'),
+                'team_messages': hour.team_messages or 0,
+                'client_messages': hour.client_messages or 0,
+                'team_characters': hour.team_characters or 0,
+                'client_characters': hour.client_characters or 0
+            })
+        
+        return jsonify({
+            'chat': {
+                'id': chat.id,
+                'title': chat.title
+            },
+            'period': {
+                'start': format_configured_time(start_time) or start_time.isoformat(),
+                'end': format_configured_time(end_time) or end_time.isoformat(),
+                'hours': hours
+            },
+            'summary': {
+                'team_messages': team_total_messages,
+                'client_messages': client_total_messages,
+                'team_characters': team_total_characters,
+                'client_characters': client_total_characters,
+                'total_messages': team_total_messages + client_total_messages,
+                'total_characters': team_total_characters + client_total_characters
+            },
+            'users': users_data,
+            'hourly_activity': hourly_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting chat detailed stats: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
