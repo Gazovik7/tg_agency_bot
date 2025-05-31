@@ -88,9 +88,11 @@ class DashboardManager {
             };
             
             if (this.apiToken) {
-                // Ensure token contains only valid characters for HTTP headers
-                const cleanToken = this.apiToken.replace(/[^\x20-\x7E]/g, '');
-                headers['Authorization'] = `Bearer ${cleanToken}`;
+                // Ensure token contains only ASCII characters for HTTP headers
+                const cleanToken = this.apiToken.replace(/[^\x00-\x7F]/g, '').trim();
+                if (cleanToken) {
+                    headers['X-Admin-Token'] = cleanToken;
+                }
             }
             
             const response = await fetch('/dashboard-data', {
@@ -367,11 +369,13 @@ class DashboardManager {
         // Destroy existing chart if it exists
         if (this.charts.communications) {
             this.charts.communications.destroy();
-            this.charts.communications = null;
+            delete this.charts.communications;
         }
         
-        // Clear the canvas
-        ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+        // Remove any existing Chart.js instances attached to this canvas
+        if (Chart.getChart(ctx)) {
+            Chart.getChart(ctx).destroy();
+        }
         
         this.charts.communications = new Chart(ctx, {
             type: 'doughnut',

@@ -19,11 +19,19 @@ kpi_calculator = KpiCalculator()
 
 def verify_admin_token():
     """Verify admin token from request headers"""
+    # Check both Authorization header and X-Admin-Token header
     auth_header = request.headers.get('Authorization', '')
-    if not auth_header.startswith('Bearer '):
+    admin_token_header = request.headers.get('X-Admin-Token', '')
+    
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header[7:]  # Remove 'Bearer ' prefix
+    elif admin_token_header:
+        token = admin_token_header
+    
+    if not token:
         return False
     
-    token = auth_header[7:]  # Remove 'Bearer ' prefix
     # Get token from environment variable first, then config file
     import os
     expected_token = os.getenv("ADMIN_TOKEN") or config_manager.get_api_config().get("admin_token")
