@@ -1,0 +1,189 @@
+# Customer Service Monitoring System Configuration
+
+agency:
+  name: "Customer Service Agency"
+  timezone: "UTC"
+  contact_email: "admin@agency.com"
+
+# Team members configuration
+# Add team members with their Telegram user IDs
+team_members:
+  # Example team members - replace with actual user IDs and information
+  # 123456789:
+  #   name: "John Doe"
+  #   role: "Senior Support"
+  #   email: "john@agency.com"
+  #   active: true
+  # 987654321:
+  #   name: "Jane Smith"  
+  #   role: "Support Manager"
+  #   email: "jane@agency.com"
+  #   active: true
+
+# KPI thresholds for attention alerts
+kpi_thresholds:
+  # Maximum average response time in seconds (1 hour)
+  max_avg_response_time: 3600
+  
+  # Maximum single response time in seconds (2 hours)
+  max_response_time: 7200
+  
+  # Maximum percentage of unanswered messages (20%)
+  max_unanswered_percentage: 20.0
+  
+  # Maximum number of negative messages before alerting
+  max_negative_messages: 5
+  
+  # Minimum average sentiment score (-0.3 on scale of -1 to 1)
+  min_avg_sentiment: -0.3
+
+# Monitoring system configuration
+monitoring:
+  # KPI calculation interval in seconds (5 minutes)
+  kpi_calculation_interval: 300
+  
+  # Number of messages to process for sentiment analysis at once
+  sentiment_analysis_batch_size: 10
+  
+  # Time in minutes before marking a client message as unanswered
+  unanswered_timeout_minutes: 60
+  
+  # Maximum number of chats to monitor simultaneously
+  max_monitored_chats: 100
+  
+  # Enable/disable sentiment analysis
+  enable_sentiment_analysis: true
+
+# API configuration
+api:
+  # Admin token for API access (override with ADMIN_TOKEN env var)
+  admin_token: "admin-secret-token"
+  
+  # CORS origins for API access
+  cors_origins:
+    - "*"
+  
+  # Rate limiting (requests per minute)
+  rate_limit: 60
+
+# Telegram bot configuration
+telegram:
+  # Webhook configuration (if using webhooks instead of polling)
+  webhook:
+    enabled: false
+    url: ""
+    port: 8443
+  
+  # Bot settings
+  parse_mode: "HTML"
+  disable_web_page_preview: true
+  
+  # Message processing settings
+  process_old_messages: false
+  max_message_length: 4096
+
+# Database configuration
+database:
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_pre_ping: true
+  pool_recycle: 3600
+
+# Redis configuration  
+redis:
+  # Queue settings
+  message_queue_name: "message_queue"
+  max_queue_size: 10000
+  
+  # Key expiration times in seconds
+  cache_ttl: 3600
+
+# Sentiment analysis configuration
+sentiment_analysis:
+  # OpenRouter API settings
+  model: "mistralai/mistral-7b-instruct"
+  max_tokens: 100
+  temperature: 0.1
+  top_p: 0.9
+  
+  # Retry settings
+  max_retries: 3
+  retry_delay: 1
+  
+  # Batch processing
+  batch_delay: 5  # seconds between batches
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log file settings (optional)
+  file:
+    enabled: false
+    path: "logs/monitoring.log"
+    max_size: "10MB"
+    backup_count: 5
+
+# Dashboard configuration
+dashboard:
+  # Default time ranges
+  default_hours: 24
+  max_hours: 168  # 7 days
+  
+  # Auto-refresh interval in seconds
+  auto_refresh_interval: 300
+  
+  # Chart settings
+  charts:
+    max_data_points: 100
+    animation_duration: 750
+  
+  # Display settings
+  timezone_display: "local"
+  date_format: "MM/DD/YYYY HH:mm"
+
+# Notification settings (future feature)
+notifications:
+  enabled: false
+  
+  # Email notifications
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    
+  # Webhook notifications
+  webhook:
+    enabled: false
+    url: ""
+    timeout: 30
+
+# Security settings
+security:
+  # API security
+  require_https: false
+  allowed_origins: ["*"]
+  
+  # Rate limiting
+  enable_rate_limiting: true
+  
+  # Data retention
+  message_retention_days: 90
+  kpi_retention_days: 365
+
+# Performance optimization
+performance:
+  # Database query optimization
+  enable_query_caching: true
+  cache_timeout: 300
+  
+  # Background processing
+  worker_threads: 2
+  max_concurrent_tasks: 50
+  
+  # Memory management
+  max_memory_usage: "512MB"

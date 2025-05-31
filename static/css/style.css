@@ -1,0 +1,230 @@
+:root {
+    --bs-primary: #0d6efd;
+    --bs-secondary: #6c757d;
+    --bs-success: #198754;
+    --bs-info: #0dcaf0;
+    --bs-warning: #ffc107;
+    --bs-danger: #dc3545;
+    --bs-light: #f8f9fa;
+    --bs-dark: #212529;
+}
+
+/* Custom styling for dark theme compatibility */
+body {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+/* Card styling */
+.card {
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.card-header {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+/* Summary cards styling */
+.card.bg-primary,
+.card.bg-success,
+.card.bg-info,
+.card.bg-danger {
+    border: none;
+}
+
+/* Table styling */
+.table-dark {
+    --bs-table-bg: transparent;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Tab styling */
+.nav-tabs {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.nav-tabs .nav-link {
+    border: 1px solid transparent;
+    color: var(--bs-light);
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: rgba(255, 255, 255, 0.125);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.125);
+    color: var(--bs-light);
+}
+
+/* Alert styling */
+.alert {
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #f5c2c7;
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffecb5;
+}
+
+/* Badge styling */
+.badge {
+    font-size: 0.75em;
+}
+
+/* Performance indicators */
+.performance-excellent {
+    color: var(--bs-success);
+}
+
+.performance-good {
+    color: var(--bs-info);
+}
+
+.performance-average {
+    color: var(--bs-warning);
+}
+
+.performance-poor {
+    color: var(--bs-danger);
+}
+
+/* Loading spinner customization */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin: 1rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body h3 {
+        font-size: 1.5rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bs-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bs-light);
+}
+
+/* Animation for updates */
+.updated {
+    animation: highlight 0.5s ease-in-out;
+}
+
+@keyframes highlight {
+    0% { background-color: rgba(255, 193, 7, 0.3); }
+    100% { background-color: transparent; }
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-online {
+    background-color: var(--bs-success);
+}
+
+.status-warning {
+    background-color: var(--bs-warning);
+}
+
+.status-offline {
+    background-color: var(--bs-danger);
+}
+
+/* Attention alerts styling */
+.attention-item {
+    border-left: 4px solid var(--bs-danger);
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+.attention-item:last-child {
+    margin-bottom: 0;
+}
+
+/* KPI cards hover effect */
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Time format styling */
+.time-format {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+/* Progress bars */
+.progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Button styling */
+.btn-outline-light:hover {
+    background-color: var(--bs-light);
+    color: var(--bs-dark);
+}
+
+/* Modal styling for dark theme */
+.modal-content {
+    background-color: var(--bs-dark);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.125);
+}
