@@ -55,6 +55,15 @@ def dashboard_data():
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
+        # Проверяем новые сообщения Telegram перед обновлением дашборда
+        try:
+            from telegram_updater import update_telegram_messages
+            new_messages = update_telegram_messages()
+            if new_messages > 0:
+                logger.info(f"Получено {new_messages} новых сообщений")
+        except Exception as e:
+            logger.error(f"Ошибка обновления Telegram сообщений: {e}")
+        
         hours = request.args.get('hours', 24, type=int)
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=hours)
