@@ -35,3 +35,6 @@ with app.app_context():
 
 # Import routes after app initialization
 from routes import *  # noqa: F401, F403
+
+# Import webhook handler
+from webhook_handler import *  # noqa: F401, F403
