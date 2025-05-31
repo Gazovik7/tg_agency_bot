@@ -35,19 +35,3 @@ with app.app_context():
 
 # Import routes after app initialization
 from routes import *  # noqa: F401, F403
-
-# Start integrated Telegram monitoring
-try:
-    from integrated_monitor import start_telegram_monitoring
-    import threading
-    import time
-    
-    def delayed_start():
-        time.sleep(3)  # Wait for app to fully initialize
-        start_telegram_monitoring()
-    
-    monitor_thread = threading.Thread(target=delayed_start, daemon=True)
-    monitor_thread.start()
-    logging.info("Telegram мониторинг запущен в фоновом режиме")
-except Exception as e:
-    logging.error(f"Ошибка запуска Telegram мониторинга: {e}")
