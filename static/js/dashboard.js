@@ -78,7 +78,9 @@ class DashboardManager {
             };
             
             if (this.apiToken) {
-                headers['Authorization'] = `Bearer ${this.apiToken}`;
+                // Ensure token contains only valid characters for HTTP headers
+                const cleanToken = this.apiToken.replace(/[^\x20-\x7E]/g, '');
+                headers['Authorization'] = `Bearer ${cleanToken}`;
             }
             
             const response = await fetch('/dashboard-data', {

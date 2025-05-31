@@ -349,7 +349,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="loadDashboardData()">Retry</button>
+                    <button type="button" class="btn btn-primary" id="retryBtn">Retry</button>
                 </div>
             </div>
         </div>
@@ -363,5 +363,12 @@
     
     <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    
+    <script>
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.dashboardManager = new DashboardManager();
+        });
+    </script>
 </body>
 </html>

@@ -24,7 +24,9 @@ def verify_admin_token():
         return False
     
     token = auth_header[7:]  # Remove 'Bearer ' prefix
-    expected_token = config_manager.get_api_config().get("admin_token")
+    # Get token from environment variable first, then config file
+    import os
+    expected_token = os.getenv("ADMIN_TOKEN") or config_manager.get_api_config().get("admin_token")
     return token == expected_token
 
 
@@ -214,8 +216,9 @@ def get_team_performance(start_time, end_time):
         team_members = config_manager.get_team_members()
         
         performance_data = []
-        for user_id, member_info in team_members.items():
-            user_id = int(user_id) if isinstance(user_id, str) else user_id
+        if team_members:
+            for user_id, member_info in team_members.items():
+                user_id = int(user_id) if isinstance(user_id, str) else user_id
             
             # Get team member's messages and response times
             member_stats = db.session.query(
