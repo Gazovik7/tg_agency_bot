@@ -8,17 +8,11 @@ agency:
 # Team members configuration
 # Add team members with their Telegram user IDs
 team_members:
-  # Example team members - replace with actual user IDs and information
-  # 123456789:
-  #   name: "John Doe"
-  #   role: "Senior Support"
-  #   email: "john@agency.com"
-  #   active: true
-  # 987654321:
-  #   name: "Jane Smith"  
-  #   role: "Support Manager"
-  #   email: "jane@agency.com"
-  #   active: true
+  265739915:
+    name: "Иван Смирнов"
+    role: "Support Manager"
+    email: "ivan@agency.com"
+    active: true
 
 # KPI thresholds for attention alerts
 kpi_thresholds:
