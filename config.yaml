@@ -2,7 +2,7 @@
 
 agency:
   name: "Customer Service Agency"
-  timezone: "UTC"
+  timezone: "Europe/Moscow"
   contact_email: "admin@agency.com"
 
 # Team members configuration

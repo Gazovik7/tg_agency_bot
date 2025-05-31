@@ -9,6 +9,7 @@ from app import app, db
 from models import Chat, Message, KpiLive, TeamMember, SystemConfig
 from config_manager import ConfigManager
 from kpi_calculator import KpiCalculator
+from timezone_utils import utc_to_configured_timezone, format_configured_time, now_in_configured_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,10 @@ def dashboard_data():
             "sentiment": sentiment_data,
             "team_performance": team_performance,
             "client_stats": client_stats,
-            "last_updated": datetime.utcnow().isoformat(),
+            "last_updated": format_configured_time(datetime.utcnow(), '%Y-%m-%d %H:%M:%S'),
             "period": {
-                "start": start_time.isoformat(),
-                "end": end_time.isoformat(),
+                "start": format_configured_time(start_time, '%Y-%m-%d %H:%M:%S'),
+                "end": format_configured_time(end_time, '%Y-%m-%d %H:%M:%S'),
                 "hours": hours
             }
         }
