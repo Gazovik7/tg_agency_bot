@@ -16,11 +16,13 @@ class DashboardManager {
     }
     
     getApiToken() {
-        // In production, this should be retrieved securely
-        // For now, using a prompt or environment variable
-        const token = localStorage.getItem('adminToken') || prompt('Enter admin token:');
-        if (token) {
-            localStorage.setItem('adminToken', token);
+        // Get admin token from environment or prompt user
+        let token = localStorage.getItem('adminToken');
+        if (!token) {
+            token = prompt('Enter admin token:');
+            if (token) {
+                localStorage.setItem('adminToken', token);
+            }
         }
         return token;
     }
@@ -67,11 +69,20 @@ class DashboardManager {
         }
         
         try {
+            if (!this.apiToken) {
+                this.apiToken = this.getApiToken();
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (this.apiToken) {
+                headers['Authorization'] = `Bearer ${this.apiToken}`;
+            }
+            
             const response = await fetch('/dashboard-data', {
-                headers: {
-                    'Authorization': `Bearer ${this.apiToken}`,
-                    'Content-Type': 'application/json'
-                }
+                headers: headers
             });
             
             if (!response.ok) {
