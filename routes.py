@@ -219,29 +219,29 @@ def get_team_performance(start_time, end_time):
         if team_members:
             for user_id, member_info in team_members.items():
                 user_id = int(user_id) if isinstance(user_id, str) else user_id
-            
-            # Get team member's messages and response times
-            member_stats = db.session.query(
-                func.count(Message.id).label('message_count'),
-                func.avg(Message.response_time_seconds).label('avg_response_time'),
-                func.min(Message.response_time_seconds).label('min_response_time'),
-                func.max(Message.response_time_seconds).label('max_response_time')
-            ).filter(
-                Message.user_id == user_id,
-                Message.is_team_member == True,
-                Message.timestamp >= start_time,
-                Message.timestamp <= end_time
-            ).first()
-            
-            performance_data.append({
-                "user_id": user_id,
-                "name": member_info.get("name", "Unknown"),
-                "role": member_info.get("role", "Team Member"),
-                "message_count": member_stats.message_count or 0,
-                "avg_response_time": int(member_stats.avg_response_time) if member_stats.avg_response_time else None,
-                "min_response_time": member_stats.min_response_time,
-                "max_response_time": member_stats.max_response_time
-            })
+                
+                # Get team member's messages and response times
+                member_stats = db.session.query(
+                    func.count(Message.id).label('message_count'),
+                    func.avg(Message.response_time_seconds).label('avg_response_time'),
+                    func.min(Message.response_time_seconds).label('min_response_time'),
+                    func.max(Message.response_time_seconds).label('max_response_time')
+                ).filter(
+                    Message.user_id == user_id,
+                    Message.is_team_member == True,
+                    Message.timestamp >= start_time,
+                    Message.timestamp <= end_time
+                ).first()
+                
+                performance_data.append({
+                    "user_id": user_id,
+                    "name": member_info.get("name", "Unknown"),
+                    "role": member_info.get("role", "Team Member"),
+                    "message_count": member_stats.message_count or 0,
+                    "avg_response_time": int(member_stats.avg_response_time) if member_stats.avg_response_time else None,
+                    "min_response_time": member_stats.min_response_time,
+                    "max_response_time": member_stats.max_response_time
+                })
         
         return performance_data
         
