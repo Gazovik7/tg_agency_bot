@@ -34,12 +34,22 @@ Session = sessionmaker(bind=engine)
 
 @dp.message()
 async def handle_message(message: Message):
-    """Handle incoming messages"""
+    """Handle incoming messages from all chats"""
     try:
-        user_id = message.from_user.id if message.from_user else 0
-        username = message.from_user.username if message.from_user else None
-        full_name = message.from_user.full_name if message.from_user else "Unknown"
+        # Skip service messages
+        if not message.from_user:
+            return
+            
+        user_id = message.from_user.id
+        username = message.from_user.username
+        full_name = message.from_user.full_name or "Unknown"
         is_team_member = user_id == TEAM_MEMBER_ID
+        
+        # Log all message details for debugging
+        chat_type = message.chat.type
+        chat_title = message.chat.title or f"Chat_{message.chat.id}"
+        
+        logger.info(f"Получено сообщение: {chat_type} '{chat_title}' от {full_name} (ID: {user_id})")
         
         session = Session()
         try:
