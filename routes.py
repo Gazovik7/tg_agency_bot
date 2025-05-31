@@ -128,7 +128,7 @@ def get_chats_needing_attention():
                     "avg_response_time": kpi.avg_response_time_seconds,
                     "unanswered_percentage": kpi.unanswered_percentage,
                     "negative_messages": kpi.negative_messages,
-                    "last_calculated": kpi.calculated_at.isoformat()
+                    "last_calculated": format_configured_time(kpi.calculated_at) or kpi.calculated_at.isoformat()
                 })
         
         return chats_attention
@@ -153,7 +153,7 @@ def get_activity_data(start_time, end_time):
         ).group_by('hour').order_by('hour').all()
         
         activity_chart = {
-            "labels": [row.hour.strftime('%H:00') for row in hourly_data],
+            "labels": [format_configured_time(row.hour, '%H:00') or row.hour.strftime('%H:00') for row in hourly_data],
             "datasets": [
                 {
                     "label": "Client Messages",
