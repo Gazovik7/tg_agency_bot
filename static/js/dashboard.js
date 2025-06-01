@@ -541,7 +541,7 @@ class FilteredDashboard {
                 break;
             case 'activity':
                 // Load activity data when tab is activated
-                this.loadActivityData();
+                setTimeout(() => this.loadActivityData(), 100); // Small delay to ensure DOM is ready
                 break;
             case 'sentiment':
                 // Load sentiment data when tab is activated
@@ -564,22 +564,40 @@ class FilteredDashboard {
                 return;
             }
 
+            // Check if we're actually on the activity tab
+            const activityTab = document.querySelector('.tab-item[data-tab="activity"]');
+            if (!activityTab || !activityTab.classList.contains('active')) {
+                console.log('Not on activity tab, skipping data load');
+                return;
+            }
+
             const filters = this.getFilters();
             const grouping = groupingElement.value || 'day';
             
             console.log('Loading activity data with filters:', filters, 'grouping:', grouping);
+
+            // Build URL parameters manually to avoid issues
+            const params = new URLSearchParams();
+            if (filters.start_date) params.append('start_date', filters.start_date);
+            if (filters.end_date) params.append('end_date', filters.end_date);
+            if (filters.chat_id) params.append('chat_id', filters.chat_id);
+            if (filters.employee_id) params.append('employee_id', filters.employee_id);
+            params.append('grouping', grouping);
+
+            const url = `/api/activity-data?${params.toString()}`;
+            console.log('Activity API URL:', url);
             
-            const response = await fetch(`/api/activity-data?${new URLSearchParams({
-                ...filters,
-                grouping: grouping
-            })}`, {
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: this.getAuthHeaders()
             });
             
             console.log('Activity API response status:', response.status);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
             const data = await response.json();
@@ -588,8 +606,13 @@ class FilteredDashboard {
             this.updateActivityTab(data, grouping);
         } catch (error) {
             console.error('Error loading activity data:', error);
+            console.error('Error stack:', error.stack);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            
             // Only show error if we're on the activity tab
-            if (document.querySelector('.tab-item[data-tab="activity"]')?.classList.contains('active')) {
+            const activityTab = document.querySelector('.tab-item[data-tab="activity"]');
+            if (activityTab && activityTab.classList.contains('active')) {
                 this.showError('Ошибка загрузки данных активности');
             }
         }
