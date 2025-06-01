@@ -235,11 +235,14 @@ class FilteredDashboard {
 
     updateEmployeesTab(employees) {
         try {
+            console.log('Updating employees tab with data:', employees);
+            
             // Create employee activity chart
             if (employees && employees.length > 0) {
                 this.createEmployeeChart(employees);
                 this.updateEmployeesTable(employees);
             } else {
+                console.log('No employees data, showing empty state');
                 // Show empty state
                 const chartContainer = document.getElementById('employeeActivityChart');
                 if (chartContainer) {
@@ -253,6 +256,7 @@ class FilteredDashboard {
             }
         } catch (error) {
             console.error('Error updating employees tab:', error);
+            console.error('Error details:', error.message, error.stack);
         }
     }
 
@@ -1348,8 +1352,11 @@ class FilteredDashboard {
     }
 
     updateChatTabs(chats) {
-        const chatTabsContainer = document.getElementById('chatTabs');
-        if (!chatTabsContainer) return;
+        const chatTabsContainer = document.getElementById('chatsContainer');
+        if (!chatTabsContainer) {
+            console.log('Chat tabs container not found');
+            return;
+        }
         
         // Clear existing tabs except "Все чаты"
         const allChatsTab = chatTabsContainer.querySelector('[data-chat-id=""]');
@@ -1358,53 +1365,100 @@ class FilteredDashboard {
             chatTabsContainer.appendChild(allChatsTab);
         }
         
-        // Add chat tabs
-        chats.forEach(chat => {
-            const tabButton = document.createElement('button');
-            tabButton.className = 'chat-tab';
-            tabButton.setAttribute('data-chat-id', chat.chat_id);
-            tabButton.onclick = () => this.filterByChat(chat.chat_id);
-            tabButton.innerHTML = `
-                ${chat.title}
-                <small>(${chat.message_count})</small>
-            `;
-            chatTabsContainer.appendChild(tabButton);
+        // Add chat cards for new design
+        const chatCards = chats.map(chat => `
+            <div class="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer chat-card" data-chat-id="${chat.chat_id}">
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="font-medium text-gray-900 truncate">${this.escapeHtml(chat.title)}</h5>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        ${chat.message_count}
+                    </span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-500">
+                    <span>Клиенты: ${chat.client_messages}</span>
+                    <span>Команда: ${chat.team_messages}</span>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">
+                    Последняя активность: ${chat.last_activity}
+                </div>
+            </div>
+        `).join('');
+        
+        chatTabsContainer.innerHTML = chatCards;
+        
+        // Add click handlers for chat cards
+        chatTabsContainer.querySelectorAll('.chat-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const chatId = card.getAttribute('data-chat-id');
+                this.filterByChat(chatId);
+                
+                // Update active state
+                chatTabsContainer.querySelectorAll('.chat-card').forEach(c => c.classList.remove('ring-2', 'ring-blue-500'));
+                card.classList.add('ring-2', 'ring-blue-500');
+            });
         });
     }
 
     updateMessagesList(messages) {
-        const messagesContainer = document.getElementById('messagesList');
-        if (!messagesContainer) return;
-        
-        if (messages.length === 0) {
-            messagesContainer.innerHTML = '<div class="no-messages">Сообщения не найдены</div>';
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (!messagesContainer) {
+            console.log('Messages container not found');
             return;
         }
         
-        messagesContainer.innerHTML = messages.map(message => `
-            <div class="message-item ${message.sender_type}">
-                <div class="message-avatar ${message.sender_type}">
-                    ${message.sender_name.charAt(0).toUpperCase()}
-                </div>
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-sender">${message.sender_name}</span>
-                        <div class="message-meta">
-                            <span class="message-time">${message.timestamp}</span>
-                            <span class="message-chat">${message.chat_title}</span>
-                        </div>
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8">Сообщения не найдены</div>';
+            return;
+        }
+        
+        const messageCards = messages.map(message => `
+            <div class="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${message.sender_type === 'client' ? 'bg-blue-500' : 'bg-green-500'}">
+                        ${message.sender_name.charAt(0).toUpperCase()}
                     </div>
-                    <div class="message-text">${message.text || 'Медиафайл'}</div>
-                    ${message.sentiment ? `
-                        <div class="message-sentiment ${message.sentiment.label}">
-                            <span>${message.sentiment.emoji}</span>
-                            <span>${message.sentiment.label}</span>
-                            <span>(${message.sentiment.score})</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-sm font-medium text-gray-900 truncate">${this.escapeHtml(message.sender_name)}</p>
+                            <p class="text-xs text-gray-500">${message.timestamp}</p>
                         </div>
-                    ` : ''}
+                        <p class="text-sm text-gray-600 mb-2">${this.escapeHtml(message.text || 'Медиафайл')}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${message.sender_type === 'client' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                                ${message.sender_type === 'client' ? 'Клиент' : 'Команда'}
+                            </span>
+                            <span class="text-xs text-gray-400">${this.escapeHtml(message.chat_title)}</span>
+                        </div>
+                        ${message.sentiment ? `
+                            <div class="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${this.getSentimentBadgeClass(message.sentiment.label)}">
+                                <span class="mr-1">${this.getSentimentEmoji(message.sentiment.label)}</span>
+                                ${message.sentiment.label} (${message.sentiment.score})
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `).join('');
+        
+        messagesContainer.innerHTML = messageCards;
+    }
+
+    getSentimentBadgeClass(label) {
+        switch(label.toLowerCase()) {
+            case 'positive': return 'bg-green-100 text-green-800';
+            case 'negative': return 'bg-red-100 text-red-800';
+            case 'neutral': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    }
+
+    getSentimentEmoji(label) {
+        switch(label.toLowerCase()) {
+            case 'positive': return '😊';
+            case 'negative': return '😠';
+            case 'neutral': return '😐';
+            default: return '📊';
+        }
     }
 
     filterByChat(chatId) {
