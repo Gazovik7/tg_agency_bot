@@ -605,23 +605,10 @@ class FilteredDashboard {
     }
 
     // Activity Tab Methods
-    async loadActivityData() {
+    async loadActivityData(grouping = 'day') {
         try {
-            // Check if activity grouping element exists
-            const groupingElement = document.getElementById('activityGrouping');
-            if (!groupingElement) {
-                console.log('Activity grouping element not found, skipping activity data load');
-                return;
-            }
-
-            // Check if we're actually on the activity tab
-            const activityTab = document.querySelector('.tab-item[data-tab="activity"]');
-            if (!activityTab || !activityTab.classList.contains('active')) {
-                console.log('Not on activity tab, skipping data load');
-                return;
-            }
-
-            const grouping = groupingElement.value || 'day';
+            // Use the grouping parameter passed to the function
+            console.log('Loading activity data with grouping:', grouping);
             
             console.log('Loading activity data with filters:', this.currentFilters, 'grouping:', grouping);
 
@@ -667,13 +654,32 @@ class FilteredDashboard {
     }
 
     updateActivityTab(data, grouping) {
-        // Update key metrics
-        this.updateActivityMetrics(data.metrics, grouping);
+        // Check if we have data
+        if (!data) {
+            console.log('No activity data received');
+            return;
+        }
         
-        // Create charts
-        this.createActivityTimeSeries(data.timeSeries, grouping);
-        this.createActivityHourHistogram(data.hourDistribution);
-        this.createActivityHeatmaps(data.heatmaps);
+        // Update key metrics if available
+        if (data.metrics) {
+            this.updateActivityMetrics(data.metrics, grouping);
+        }
+        
+        // Create charts if containers exist and data is available
+        const timeSeriesContainer = document.getElementById('activityTimeSeriesChart');
+        if (timeSeriesContainer && data.time_series) {
+            this.createActivityTimeSeries(data, grouping);
+        }
+        
+        const hourHistogramContainer = document.getElementById('activityHourHistogram');
+        if (hourHistogramContainer && data.hour_histogram) {
+            this.createActivityHourHistogram(data);
+        }
+        
+        const heatmapsContainer = document.getElementById('activityHeatmaps');
+        if (heatmapsContainer && data.daily_heatmap) {
+            this.createActivityHeatmaps(data);
+        }
     }
 
     updateActivityMetrics(metrics, grouping) {
@@ -1121,26 +1127,42 @@ class FilteredDashboard {
     }
 
     updateSentimentDisplay(data) {
-        const summary = data.summary || {};
-        
-        // Update sentiment statistics
-        document.getElementById('positiveCount').textContent = summary.positive || 0;
-        document.getElementById('positivePercentage').textContent = `${summary.positive_percentage || 0}%`;
-        
-        document.getElementById('negativeCount').textContent = summary.negative || 0;
-        document.getElementById('negativePercentage').textContent = `${summary.negative_percentage || 0}%`;
-        
-        document.getElementById('neutralCount').textContent = summary.neutral || 0;
-        document.getElementById('neutralPercentage').textContent = `${summary.neutral_percentage || 0}%`;
-        
-        document.getElementById('totalAnalyzed').textContent = summary.total_messages || 0;
-        document.getElementById('avgScore').textContent = summary.avg_score || '0.00';
-        
-        // Create sentiment distribution chart
-        this.createSentimentDistributionChart(summary);
-        
-        // Create sentiment trend chart
-        this.createSentimentTrendChart(data.trend || {});
+        try {
+            const summary = data.summary || {};
+            
+            // Update sentiment statistics - using new design element IDs
+            const positiveCountEl = document.getElementById('positiveCount');
+            if (positiveCountEl) positiveCountEl.textContent = summary.positive || 0;
+            
+            const positivePercentEl = document.getElementById('positivePercent');
+            if (positivePercentEl) positivePercentEl.textContent = `${summary.positive_percentage || 0}%`;
+            
+            const negativeCountEl = document.getElementById('negativeCount');
+            if (negativeCountEl) negativeCountEl.textContent = summary.negative || 0;
+            
+            const negativePercentEl = document.getElementById('negativePercent');
+            if (negativePercentEl) negativePercentEl.textContent = `${summary.negative_percentage || 0}%`;
+            
+            const neutralCountEl = document.getElementById('neutralCount');
+            if (neutralCountEl) neutralCountEl.textContent = summary.neutral || 0;
+            
+            const neutralPercentEl = document.getElementById('neutralPercent');
+            if (neutralPercentEl) neutralPercentEl.textContent = `${summary.neutral_percentage || 0}%`;
+            
+            const totalAnalyzedEl = document.getElementById('totalAnalyzed');
+            if (totalAnalyzedEl) totalAnalyzedEl.textContent = `${summary.total_messages || 0} проанализировано`;
+            
+            const avgScoreEl = document.getElementById('avgScore');
+            if (avgScoreEl) avgScoreEl.textContent = summary.avg_score || '0.00';
+            
+            // Create sentiment distribution chart
+            this.createSentimentDistributionChart(summary);
+            
+            // Create sentiment trend chart
+            this.createSentimentTrendChart(data.trend || {});
+        } catch (error) {
+            console.error('Error updating sentiment display:', error);
+        }
     }
 
     createSentimentDistributionChart(summary) {
