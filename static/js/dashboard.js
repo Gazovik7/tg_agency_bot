@@ -1151,6 +1151,7 @@ class FilteredDashboard {
 
         if (this.charts.sentimentTrendChart) {
             this.charts.sentimentTrendChart.destroy();
+            this.charts.sentimentTrendChart = null;
         }
 
         this.charts.sentimentTrendChart = new Chart(ctx, {
@@ -1215,6 +1216,7 @@ class FilteredDashboard {
 
         if (this.charts.responseTimeTrendChart) {
             this.charts.responseTimeTrendChart.destroy();
+            this.charts.responseTimeTrendChart = null;
         }
 
         this.charts.responseTimeTrendChart = new Chart(ctx, {
