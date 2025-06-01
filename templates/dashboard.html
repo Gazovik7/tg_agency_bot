@@ -465,12 +465,17 @@
                 <div class="tab-pane" id="communications">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Последние сообщения</h3>
-                            <div class="d-flex align-items-center">
-                                <select class="form-select form-select-sm me-2" id="communicationsLimit" style="width: auto;">
+                            <h3 class="card-title">Коммуникации с клиентами</h3>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <select class="form-select form-select-sm" id="communicationsLimit" style="width: auto;">
                                     <option value="20">20 сообщений</option>
                                     <option value="50" selected>50 сообщений</option>
                                     <option value="100">100 сообщений</option>
+                                </select>
+                                <select class="form-select form-select-sm" id="communicationsFilter" style="width: auto;">
+                                    <option value="all">Все сообщения</option>
+                                    <option value="client">Только от клиентов</option>
+                                    <option value="team">Только от команды</option>
                                 </select>
                                 <button class="btn btn-outline-primary btn-sm" onclick="refreshCommunications()">
                                     <i class="fas fa-sync-alt"></i> Обновить
