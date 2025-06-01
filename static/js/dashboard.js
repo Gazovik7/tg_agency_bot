@@ -1164,6 +1164,8 @@ class FilteredDashboard {
         try {
             // Получаем реальные данные тренда тональности
             this.loadSentimentTrendData().then(trendData => {
+                console.log('Creating sentiment chart with data:', trendData);
+                
                 if (this.charts.sentimentTrendChart) {
                     this.charts.sentimentTrendChart.destroy();
                 }
@@ -1289,6 +1291,8 @@ class FilteredDashboard {
         try {
             // Получаем реальные данные тренда времени ответа
             this.loadResponseTimeTrendData().then(trendData => {
+                console.log('Creating response time chart with data:', trendData);
+                
                 if (this.charts.responseTimeTrendChart) {
                     this.charts.responseTimeTrendChart.destroy();
                 }
