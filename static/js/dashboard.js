@@ -626,6 +626,22 @@ class FilteredDashboard {
     }
 }
 
+// Global variables
+let dashboardInstance = null;
+
+// Global functions for button controls
+function toggleClientChartType(type) {
+    if (dashboardInstance) {
+        dashboardInstance.toggleClientChartType(type);
+    }
+}
+
+function toggleClientView(viewType) {
+    if (dashboardInstance) {
+        dashboardInstance.toggleClientView(viewType);
+    }
+}
+
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Set admin token from template if available
@@ -634,5 +650,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Initialize dashboard
-    new FilteredDashboard();
+    dashboardInstance = new FilteredDashboard();
 });
