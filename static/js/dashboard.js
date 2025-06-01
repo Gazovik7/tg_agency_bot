@@ -556,8 +556,17 @@ class FilteredDashboard {
     // Activity Tab Methods
     async loadActivityData() {
         try {
+            // Check if activity grouping element exists
+            const groupingElement = document.getElementById('activityGrouping');
+            if (!groupingElement) {
+                console.log('Activity grouping element not found, skipping activity data load');
+                return;
+            }
+
             const filters = this.getFilters();
-            const grouping = document.getElementById('activityGrouping').value;
+            const grouping = groupingElement.value || 'day';
+            
+            console.log('Loading activity data with filters:', filters, 'grouping:', grouping);
             
             const response = await fetch(`/api/activity-data?${new URLSearchParams({
                 ...filters,
@@ -566,15 +575,22 @@ class FilteredDashboard {
                 headers: this.getAuthHeaders()
             });
             
+            console.log('Activity API response status:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log('Activity data received:', data);
+            
             this.updateActivityTab(data, grouping);
         } catch (error) {
             console.error('Error loading activity data:', error);
-            this.showError('Ошибка загрузки данных активности');
+            // Only show error if we're on the activity tab
+            if (document.querySelector('.tab-item[data-tab="activity"]')?.classList.contains('active')) {
+                this.showError('Ошибка загрузки данных активности');
+            }
         }
     }
 
