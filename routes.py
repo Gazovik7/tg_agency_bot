@@ -1038,8 +1038,9 @@ def response_time_trend():
         
         for row in daily_response_times:
             labels.append(row.date.strftime('%m/%d'))
-            # Convert to minutes
-            data.append(round(row.avg_response_seconds / 60, 1))
+            # Convert to minutes and ensure it's a float
+            avg_minutes = float(row.avg_response_seconds) / 60
+            data.append(round(avg_minutes, 1))
         
         return jsonify({
             'labels': labels,
