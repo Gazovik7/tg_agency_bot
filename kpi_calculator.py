@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from models import Message, Chat, KpiLive
 from config_manager import ConfigManager
+from response_time_analyzer import ResponseTimeAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ class KpiCalculator:
     
     def __init__(self):
         self.config = ConfigManager()
+        self.response_analyzer = ResponseTimeAnalyzer()
     
     def calculate_chat_kpis(self, session: Session, chat_id: int, start_time: datetime, end_time: datetime) -> Optional[Dict]:
         """
@@ -46,8 +48,8 @@ class KpiCalculator:
             client_messages = [m for m in messages if not m.is_team_member]
             team_messages = [m for m in messages if m.is_team_member]
             
-            # Calculate response time metrics
-            response_times = self._calculate_response_times(session, chat_id, start_time, end_time)
+            # Calculate response time metrics using improved analyzer
+            response_times = self.response_analyzer.analyze_chat_response_times(session, chat_id, start_time, end_time)
             
             # Calculate unanswered messages
             unanswered_count = self._calculate_unanswered_messages(session, chat_id, start_time, end_time)
@@ -61,10 +63,31 @@ class KpiCalculator:
             )
             
             kpis = {
-                # Response time metrics
-                "avg_response_time_seconds": response_times.get("avg"),
-                "max_response_time_seconds": response_times.get("max"),
-                "median_response_time_seconds": response_times.get("median"),
+                # Enhanced response time metrics
+                "avg_response_time_seconds": response_times.get("avg_response_time_seconds"),
+                "max_response_time_seconds": response_times.get("max_response_time_seconds"),
+                "min_response_time_seconds": response_times.get("min_response_time_seconds"),
+                "median_response_time_seconds": response_times.get("median_response_time_seconds"),
+                "p75_response_time_seconds": response_times.get("p75_response_time_seconds"),
+                "p90_response_time_seconds": response_times.get("p90_response_time_seconds"),
+                "p95_response_time_seconds": response_times.get("p95_response_time_seconds"),
+                
+                # Response time in minutes for display
+                "avg_response_time_minutes": response_times.get("avg_response_time_minutes"),
+                "max_response_time_minutes": response_times.get("max_response_time_minutes"),
+                "min_response_time_minutes": response_times.get("min_response_time_minutes"),
+                "median_response_time_minutes": response_times.get("median_response_time_minutes"),
+                
+                # Response distribution metrics
+                "total_responses": response_times.get("total_responses", 0),
+                "responses_under_5min": response_times.get("responses_under_5min", 0),
+                "responses_under_15min": response_times.get("responses_under_15min", 0),
+                "responses_under_1hour": response_times.get("responses_under_1hour", 0),
+                "responses_over_1hour": response_times.get("responses_over_1hour", 0),
+                "percentage_under_5min": response_times.get("percentage_under_5min", 0),
+                "percentage_under_15min": response_times.get("percentage_under_15min", 0),
+                "percentage_under_1hour": response_times.get("percentage_under_1hour", 0),
+                "percentage_over_1hour": response_times.get("percentage_over_1hour", 0),
                 
                 # Message distribution
                 "total_messages": total_messages,

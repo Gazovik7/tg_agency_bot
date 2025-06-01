@@ -63,10 +63,31 @@ class KpiLive(db.Model):
     period_start = db.Column(db.DateTime, nullable=False)
     period_end = db.Column(db.DateTime, nullable=False)
     
-    # Response time metrics
+    # Enhanced response time metrics
     avg_response_time_seconds = db.Column(db.Integer)
     max_response_time_seconds = db.Column(db.Integer)
+    min_response_time_seconds = db.Column(db.Integer)
     median_response_time_seconds = db.Column(db.Integer)
+    p75_response_time_seconds = db.Column(db.Integer)
+    p90_response_time_seconds = db.Column(db.Integer)
+    p95_response_time_seconds = db.Column(db.Integer)
+    
+    # Response time in minutes for easy display
+    avg_response_time_minutes = db.Column(db.Float)
+    max_response_time_minutes = db.Column(db.Float)
+    min_response_time_minutes = db.Column(db.Float)
+    median_response_time_minutes = db.Column(db.Float)
+    
+    # Response distribution metrics
+    total_responses = db.Column(db.Integer, default=0)
+    responses_under_5min = db.Column(db.Integer, default=0)
+    responses_under_15min = db.Column(db.Integer, default=0)
+    responses_under_1hour = db.Column(db.Integer, default=0)
+    responses_over_1hour = db.Column(db.Integer, default=0)
+    percentage_under_5min = db.Column(db.Float, default=0.0)
+    percentage_under_15min = db.Column(db.Float, default=0.0)
+    percentage_under_1hour = db.Column(db.Float, default=0.0)
+    percentage_over_1hour = db.Column(db.Float, default=0.0)
     
     # Message distribution
     total_messages = db.Column(db.Integer, default=0)
