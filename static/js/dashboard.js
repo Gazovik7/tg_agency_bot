@@ -1246,30 +1246,16 @@ class FilteredDashboard {
         }
     }
 
-    updateSentimentTrendChart(data) {
+    async updateSentimentTrendChart(data) {
         if (!this.charts.sentimentTrendChart) return;
 
         try {
-            // Создаем новые данные
-            const last7Days = [];
-            const sentimentData = [];
-            
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
-                
-                const clientsWithSentiment = data.clients?.filter(c => c.avg_sentiment !== undefined) || [];
-                const avgSentiment = clientsWithSentiment.length > 0 
-                    ? clientsWithSentiment.reduce((sum, c) => sum + c.avg_sentiment, 0) / clientsWithSentiment.length
-                    : 0;
-                
-                sentimentData.push(avgSentiment + (Math.random() - 0.5) * 0.3);
-            }
+            // Получаем реальные данные тренда тональности
+            const trendData = await this.loadSentimentTrendData();
 
             // Обновляем данные графика
-            this.charts.sentimentTrendChart.data.labels = last7Days;
-            this.charts.sentimentTrendChart.data.datasets[0].data = sentimentData;
+            this.charts.sentimentTrendChart.data.labels = trendData.labels || [];
+            this.charts.sentimentTrendChart.data.datasets[0].data = trendData.data || [];
             this.charts.sentimentTrendChart.update();
         } catch (error) {
             console.error('Error updating sentiment trend chart:', error);
@@ -1335,30 +1321,16 @@ class FilteredDashboard {
         }
     }
 
-    updateResponseTimeTrendChart(data) {
+    async updateResponseTimeTrendChart(data) {
         if (!this.charts.responseTimeTrendChart) return;
 
         try {
-            // Создаем новые данные
-            const last7Days = [];
-            const responseTimeData = [];
-            
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
-                
-                const clientsWithResponseTime = data.clients?.filter(c => c.avg_response_time_minutes > 0) || [];
-                const avgResponseTime = clientsWithResponseTime.length > 0
-                    ? clientsWithResponseTime.reduce((sum, c) => sum + c.avg_response_time_minutes, 0) / clientsWithResponseTime.length
-                    : 0;
-                
-                responseTimeData.push(Math.max(0, avgResponseTime + (Math.random() - 0.5) * 60));
-            }
+            // Получаем реальные данные тренда времени ответа
+            const trendData = await this.loadResponseTimeTrendData();
 
             // Обновляем данные графика
-            this.charts.responseTimeTrendChart.data.labels = last7Days;
-            this.charts.responseTimeTrendChart.data.datasets[0].data = responseTimeData;
+            this.charts.responseTimeTrendChart.data.labels = trendData.labels || [];
+            this.charts.responseTimeTrendChart.data.datasets[0].data = trendData.data || [];
             this.charts.responseTimeTrendChart.update();
         } catch (error) {
             console.error('Error updating response time trend chart:', error);
