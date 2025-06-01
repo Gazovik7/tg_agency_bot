@@ -776,8 +776,11 @@ def filtered_dashboard_data():
                 'character_count': emp.character_count or 0
             })
         
-        # Get all chats with messages in the filtered period
-        active_chats = db.session.query(Chat).join(Message).filter(*query_filters).distinct().all()
+        # Get all chats with messages in the filtered period (exclude private chats)
+        active_chats = db.session.query(Chat).join(Message).filter(
+            Chat.chat_type.in_(['group', 'supergroup']),  # Only group chats
+            *query_filters
+        ).distinct().all()
         
         clients_data = []
         for chat in active_chats:
@@ -1090,12 +1093,15 @@ def sentiment_overview():
         if chat_id:
             filters.append(Message.chat_id == int(chat_id))
         
-        # Get sentiment distribution for client messages
+        # Get sentiment distribution for client messages (exclude private chats)
         sentiment_counts = db.session.query(
             Message.sentiment_label,
             func.count(Message.id).label('count'),
             func.avg(Message.sentiment_score).label('avg_score')
-        ).filter(*filters).group_by(Message.sentiment_label).all()
+        ).join(Chat).filter(
+            Chat.chat_type.in_(['group', 'supergroup']),  # Only group chats
+            *filters
+        ).group_by(Message.sentiment_label).all()
         
         # Calculate overall sentiment statistics
         total_messages = sum(row.count for row in sentiment_counts)
@@ -1183,7 +1189,7 @@ def recent_communications():
         if chat_id:
             filters.append(Message.chat_id == int(chat_id))
         
-        # Get recent messages with chat info
+        # Get recent messages with chat info (exclude private chats)
         recent_messages = db.session.query(
             Message.id,
             Message.message_id,
@@ -1198,6 +1204,7 @@ def recent_communications():
             Chat.title.label('chat_title'),
             Chat.id.label('chat_id')
         ).join(Chat, Message.chat_id == Chat.id).filter(
+            Chat.chat_type.in_(['group', 'supergroup']),  # Only group chats
             *filters
         ).order_by(desc(Message.timestamp)).limit(limit).all()
         
@@ -1234,7 +1241,7 @@ def recent_communications():
                 'sentiment': sentiment_info
             })
         
-        # Get chat statistics
+        # Get chat statistics (exclude private chats)
         chat_stats = db.session.query(
             Chat.id,
             Chat.title,
@@ -1243,6 +1250,7 @@ def recent_communications():
             func.sum(func.cast(Message.is_team_member, db.Integer)).label('team_messages'),
             func.max(Message.timestamp).label('last_activity')
         ).join(Message, Chat.id == Message.chat_id).filter(
+            Chat.chat_type.in_(['group', 'supergroup']),  # Only group chats
             Message.timestamp >= start_time,
             Message.timestamp <= end_time
         ).group_by(Chat.id, Chat.title).order_by(desc('last_activity')).all()
@@ -1550,8 +1558,9 @@ def api_activity_data():
         else:
             end_datetime = datetime.now()
         
-        # Build base query
-        query = db.session.query(Message).filter(
+        # Build base query (exclude private chats)
+        query = db.session.query(Message).join(Chat).filter(
+            Chat.chat_type.in_(['group', 'supergroup']),  # Only group chats
             Message.timestamp >= start_datetime,
             Message.timestamp < end_datetime
         )
