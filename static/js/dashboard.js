@@ -1214,15 +1214,22 @@ class FilteredDashboard {
 
     async loadSentimentTrendData() {
         try {
+            console.log('Loading sentiment trend data with token:', this.adminToken);
             const response = await fetch('/api/sentiment-trend?days=7', {
                 headers: { 'X-Admin-Token': this.adminToken }
             });
             
+            console.log('Sentiment trend response status:', response.status);
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch sentiment trend data');
+                const errorText = await response.text();
+                console.error('Sentiment trend API error:', response.status, errorText);
+                throw new Error('Failed to fetch sentiment trend data: ' + response.status);
             }
             
-            return await response.json();
+            const data = await response.json();
+            console.log('Sentiment trend data loaded:', data);
+            return data;
         } catch (error) {
             console.error('Error loading sentiment trend data:', error);
             return { labels: [], data: [] };
@@ -1231,15 +1238,22 @@ class FilteredDashboard {
 
     async loadResponseTimeTrendData() {
         try {
+            console.log('Loading response time trend data with token:', this.adminToken);
             const response = await fetch('/api/response-time-trend?days=7', {
                 headers: { 'X-Admin-Token': this.adminToken }
             });
             
+            console.log('Response time trend response status:', response.status);
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch response time trend data');
+                const errorText = await response.text();
+                console.error('Response time trend API error:', response.status, errorText);
+                throw new Error('Failed to fetch response time trend data: ' + response.status);
             }
             
-            return await response.json();
+            const data = await response.json();
+            console.log('Response time trend data loaded:', data);
+            return data;
         } catch (error) {
             console.error('Error loading response time trend data:', error);
             return { labels: [], data: [] };
