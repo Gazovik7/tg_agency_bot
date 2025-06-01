@@ -28,14 +28,18 @@ def moscow_to_utc(moscow_dt):
     
     return moscow_dt.astimezone(UTC_TZ)
 
-def moscow_date_to_utc_range(date_str):
-    """Convert Moscow date string to UTC datetime range for the full day"""
-    moscow_date = datetime.strptime(date_str, '%Y-%m-%d')
+def moscow_date_to_utc_range(start_date_str, end_date_str=None):
+    """Convert Moscow date string(s) to UTC datetime range"""
+    if end_date_str is None:
+        end_date_str = start_date_str
     
-    # Start of day in Moscow
-    moscow_start = MOSCOW_TZ.localize(moscow_date.replace(hour=0, minute=0, second=0, microsecond=0))
-    # End of day in Moscow
-    moscow_end = MOSCOW_TZ.localize(moscow_date.replace(hour=23, minute=59, second=59, microsecond=999999))
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    
+    # Start of start_date in Moscow
+    moscow_start = MOSCOW_TZ.localize(start_date.replace(hour=0, minute=0, second=0, microsecond=0))
+    # End of end_date in Moscow
+    moscow_end = MOSCOW_TZ.localize(end_date.replace(hour=23, minute=59, second=59, microsecond=999999))
     
     # Convert to UTC
     utc_start = moscow_start.astimezone(UTC_TZ)

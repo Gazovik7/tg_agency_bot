@@ -713,10 +713,47 @@ def filtered_dashboard_data():
         
         logger.info(f"Stats: total={total_messages}, client={client_messages}, team={team_messages}, symbols={total_symbols}")
         
-        # Calculate response times
-        response_times = [m.response_time_seconds for m in messages if m.response_time_seconds is not None]
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        max_response_time = max(response_times) if response_times else 0
+        # Calculate enhanced response times using new analyzer
+        analyzer = ResponseTimeAnalyzer()
+        
+        # Get overall response metrics for all active chats in the period
+        overall_response_metrics = {
+            'avg_response_time_minutes': 0,
+            'max_response_time_minutes': 0,
+            'median_response_time_minutes': 0,
+            'total_responses': 0
+        }
+        
+        if chat_id:
+            # For specific chat, use detailed analysis
+            chat_metrics = analyzer.analyze_chat_response_times(db.session, chat_id, start_time, end_time)
+            overall_response_metrics = chat_metrics
+        else:
+            # For overall view, calculate aggregated metrics
+            active_chats = db.session.query(Chat).join(Message).filter(*query_filters).distinct().all()
+            all_response_times = []
+            
+            for chat in active_chats:
+                chat_metrics = analyzer.analyze_chat_response_times(db.session, chat.id, start_time, end_time)
+                if chat_metrics['total_responses'] > 0:
+                    # Collect all response times for overall calculation
+                    # We'll use the basic response_time_seconds from messages for aggregation
+                    chat_response_times = db.session.query(Message.response_time_seconds).filter(
+                        Message.chat_id == chat.id,
+                        Message.timestamp >= start_time,
+                        Message.timestamp <= end_time,
+                        Message.response_time_seconds.isnot(None),
+                        Message.response_time_seconds > 0
+                    ).all()
+                    all_response_times.extend([rt[0] for rt in chat_response_times])
+            
+            if all_response_times:
+                overall_response_metrics = {
+                    'avg_response_time_minutes': round(sum(all_response_times) / len(all_response_times) / 60, 1),
+                    'max_response_time_minutes': round(max(all_response_times) / 60, 1),
+                    'median_response_time_minutes': round(sorted(all_response_times)[len(all_response_times)//2] / 60, 1),
+                    'total_responses': len(all_response_times)
+                }
         
         # Get employee activity data (by individual users)
         employee_stats = db.session.query(
@@ -785,6 +822,9 @@ def filtered_dashboard_data():
                 client_char_ratio = 0
             
             if chat_total_messages > 0:  # Only include chats with messages
+                # Get detailed response time metrics for this chat
+                chat_response_metrics = analyzer.analyze_chat_response_times(db.session, chat.id, start_time, end_time)
+                
                 clients_data.append({
                     'chat_id': chat.id,
                     'name': chat.title,
@@ -798,7 +838,17 @@ def filtered_dashboard_data():
                     'client_message_ratio': round(client_message_ratio, 1),
                     'team_char_ratio': round(team_char_ratio, 1),
                     'client_char_ratio': round(client_char_ratio, 1),
-                    'communication_intensity': total_messages  # For sorting
+                    'communication_intensity': chat_total_messages,  # For sorting
+                    
+                    # Response time metrics
+                    'avg_response_time_minutes': chat_response_metrics.get('avg_response_time_minutes', 0),
+                    'max_response_time_minutes': chat_response_metrics.get('max_response_time_minutes', 0),
+                    'median_response_time_minutes': chat_response_metrics.get('median_response_time_minutes', 0),
+                    'total_responses': chat_response_metrics.get('total_responses', 0),
+                    'responses_under_5min': chat_response_metrics.get('responses_under_5min', 0),
+                    'responses_over_1hour': chat_response_metrics.get('responses_over_1hour', 0),
+                    'percentage_under_5min': chat_response_metrics.get('percentage_under_5min', 0),
+                    'percentage_over_1hour': chat_response_metrics.get('percentage_over_1hour', 0)
                 })
         
         # Sort by communication intensity
@@ -811,8 +861,10 @@ def filtered_dashboard_data():
                 'client_messages': client_messages,
                 'team_messages': team_messages,
                 'total_symbols': total_symbols,
-                'avg_response_time_minutes': round(avg_response_time / 60) if avg_response_time else 0,
-                'max_response_time_minutes': round(max_response_time / 60) if max_response_time else 0,
+                'avg_response_time_minutes': overall_response_metrics.get('avg_response_time_minutes', 0),
+                'max_response_time_minutes': overall_response_metrics.get('max_response_time_minutes', 0),
+                'median_response_time_minutes': overall_response_metrics.get('median_response_time_minutes', 0),
+                'total_responses': overall_response_metrics.get('total_responses', 0),
                 'client_percentage': round((client_messages / total_messages * 100), 1) if total_messages else 0,
                 'team_percentage': round((team_messages / total_messages * 100), 1) if total_messages else 0
             },
