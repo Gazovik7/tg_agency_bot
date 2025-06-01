@@ -33,7 +33,8 @@ class FilteredDashboard {
         const activityGrouping = document.getElementById('activityGrouping');
         if (activityGrouping) {
             activityGrouping.addEventListener('change', () => {
-                if (document.querySelector('.tab-item[data-tab="activity"]').classList.contains('active')) {
+                const activeTab = document.querySelector('.tab-item[data-tab="activity"]');
+                if (activeTab && activeTab.classList.contains('active')) {
                     this.loadActivityData();
                 }
             });
@@ -605,19 +606,42 @@ class FilteredDashboard {
     }
 
     updateActivityMetrics(metrics, grouping) {
-        const periodLabels = {
-            'day': 'в день',
-            'week': 'в неделю', 
-            'month': 'в месяц'
-        };
+        try {
+            const periodLabels = {
+                'day': 'в день',
+                'week': 'в неделю', 
+                'month': 'в месяц'
+            };
 
-        document.getElementById('activityTotalMessages').textContent = metrics.totalMessages || 0;
-        document.getElementById('activityAvgPerPeriod').textContent = metrics.avgPerPeriod || 0;
-        document.getElementById('activityAvgLabel').textContent = `сообщений ${periodLabels[grouping]}`;
-        document.getElementById('activityPeakPeriod').textContent = metrics.peakPeriod || '-';
-        document.getElementById('activityPeakCount').textContent = `${metrics.peakCount || 0} сообщений`;
-        document.getElementById('activityPeakHour').textContent = metrics.peakHour !== undefined ? `${metrics.peakHour}:00` : '-';
-        document.getElementById('activityPeakHourCount').textContent = `${metrics.peakHourCount || 0} сообщений`;
+            // Check if elements exist before updating
+            const elements = [
+                'activityTotalMessages',
+                'activityAvgPerPeriod', 
+                'activityAvgLabel',
+                'activityPeakPeriod',
+                'activityPeakCount',
+                'activityPeakHour',
+                'activityPeakHourCount'
+            ];
+
+            for (const elementId of elements) {
+                const element = document.getElementById(elementId);
+                if (!element) {
+                    console.warn(`Element ${elementId} not found`);
+                    return;
+                }
+            }
+
+            document.getElementById('activityTotalMessages').textContent = metrics.totalMessages || 0;
+            document.getElementById('activityAvgPerPeriod').textContent = metrics.avgPerPeriod || 0;
+            document.getElementById('activityAvgLabel').textContent = `сообщений ${periodLabels[grouping]}`;
+            document.getElementById('activityPeakPeriod').textContent = metrics.peakPeriod || '-';
+            document.getElementById('activityPeakCount').textContent = `${metrics.peakCount || 0} сообщений`;
+            document.getElementById('activityPeakHour').textContent = metrics.peakHour !== undefined ? `${metrics.peakHour}:00` : '-';
+            document.getElementById('activityPeakHourCount').textContent = `${metrics.peakHourCount || 0} сообщений`;
+        } catch (error) {
+            console.error('Error updating activity metrics:', error);
+        }
     }
 
     createActivityTimeSeries(data, grouping) {
