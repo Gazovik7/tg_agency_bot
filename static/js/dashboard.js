@@ -1151,6 +1151,12 @@ class FilteredDashboard {
             console.log('Sentiment trend chart canvas not found');
             return;
         }
+        
+        // Проверяем, что это действительно Canvas элемент
+        if (ctx.tagName !== 'CANVAS') {
+            console.error('Element sentimentTrendChart is not a canvas:', ctx.tagName);
+            return;
+        }
 
         // Уничтожаем существующий график если есть
         if (this.charts.sentimentTrendChart) {
@@ -1206,8 +1212,10 @@ class FilteredDashboard {
                     }
                 });
             }).catch(error => {
-                console.error('Error loading sentiment trend data:', error);
-                ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка загрузки данных тренда тональности</div>';
+                console.error('Error creating sentiment trend chart:', error);
+                if (ctx && ctx.parentElement) {
+                    ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка создания графика тональности</div>';
+                }
             });
         } catch (error) {
             console.error('Error creating sentiment trend chart:', error);
@@ -1280,7 +1288,16 @@ class FilteredDashboard {
 
     createResponseTimeTrendChart(data) {
         const ctx = document.getElementById('responseTimeTrendChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.log('Response time trend chart canvas not found');
+            return;
+        }
+        
+        // Проверяем, что это действительно Canvas элемент
+        if (ctx.tagName !== 'CANVAS') {
+            console.error('Element responseTimeTrendChart is not a canvas:', ctx.tagName);
+            return;
+        }
 
         // Уничтожаем существующий график если есть
         if (this.charts.responseTimeTrendChart) {
@@ -1331,8 +1348,10 @@ class FilteredDashboard {
                     }
                 });
             }).catch(error => {
-                console.error('Error loading response time trend data:', error);
-                ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка загрузки данных времени ответа</div>';
+                console.error('Error creating response time trend chart:', error);
+                if (ctx && ctx.parentElement) {
+                    ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка создания графика времени ответа</div>';
+                }
             });
         } catch (error) {
             console.error('Error creating response time trend chart:', error);
