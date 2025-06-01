@@ -1525,6 +1525,199 @@ def api_potential_team_members():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route('/api/activity-data')
+def api_activity_data():
+    """API endpoint for activity analytics with grouping support"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Get query parameters
+        chat_id = request.args.get('chat_id', '').strip()
+        employee_id = request.args.get('employee_id', '').strip()
+        start_date = request.args.get('start_date', '').strip()
+        end_date = request.args.get('end_date', '').strip()
+        grouping = request.args.get('grouping', 'day').strip()
+        
+        # Parse dates
+        if start_date:
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_datetime = datetime.now() - timedelta(days=7)
+            
+        if end_date:
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        else:
+            end_datetime = datetime.now()
+        
+        # Build base query
+        query = db.session.query(Message).filter(
+            Message.timestamp >= start_datetime,
+            Message.timestamp < end_datetime
+        )
+        
+        # Apply filters
+        if chat_id:
+            try:
+                chat_id_int = int(chat_id)
+                query = query.filter(Message.chat_id == chat_id_int)
+            except ValueError:
+                pass
+                
+        if employee_id:
+            try:
+                employee_id_int = int(employee_id)
+                query = query.filter(Message.user_id == employee_id_int)
+            except ValueError:
+                pass
+        
+        # Get messages
+        messages = query.order_by(Message.timestamp).all()
+        
+        # Process data based on grouping
+        activity_data = process_activity_data(messages, grouping, start_datetime, end_datetime)
+        
+        return jsonify(activity_data)
+        
+    except Exception as e:
+        logger.error(f"Error in activity data API: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+def process_activity_data(messages, grouping, start_datetime, end_datetime):
+    """Process messages for activity analysis with different grouping levels"""
+    from collections import defaultdict
+    import calendar
+    
+    # Initialize data structures
+    time_series_data = defaultdict(lambda: {'client': 0, 'team': 0})
+    hour_distribution = defaultdict(lambda: {'client': 0, 'team': 0})
+    heatmap_data = {
+        'client': [[0 for _ in range(24)] for _ in range(7)],
+        'team': [[0 for _ in range(24)] for _ in range(7)]
+    }
+    
+    total_client_messages = 0
+    total_team_messages = 0
+    
+    # Process each message
+    for message in messages:
+        msg_time = message.timestamp
+        hour = msg_time.hour
+        weekday = msg_time.weekday()  # 0=Monday, 6=Sunday
+        
+        # Determine message type
+        msg_type = 'team' if message.is_team_member else 'client'
+        
+        # Update counters
+        if msg_type == 'client':
+            total_client_messages += 1
+        else:
+            total_team_messages += 1
+        
+        # Hour distribution (always same regardless of grouping)
+        hour_distribution[hour][msg_type] += 1
+        
+        # Heatmap data (always same regardless of grouping)
+        heatmap_data[msg_type][weekday][hour] += 1
+        
+        # Time series data based on grouping
+        if grouping == 'day':
+            period_key = msg_time.strftime('%Y-%m-%d')
+        elif grouping == 'week':
+            # ISO week format
+            year, week, _ = msg_time.isocalendar()
+            period_key = f"{year}-W{week:02d}"
+        elif grouping == 'month':
+            period_key = msg_time.strftime('%Y-%m')
+        else:
+            period_key = msg_time.strftime('%Y-%m-%d')
+        
+        time_series_data[period_key][msg_type] += 1
+    
+    # Generate time series arrays
+    periods = []
+    client_messages_series = []
+    team_messages_series = []
+    
+    # Create period range based on grouping
+    current = start_datetime
+    while current < end_datetime:
+        if grouping == 'day':
+            period_key = current.strftime('%Y-%m-%d')
+            next_period = current + timedelta(days=1)
+        elif grouping == 'week':
+            year, week, _ = current.isocalendar()
+            period_key = f"{year}-W{week:02d}"
+            # Move to next Monday
+            days_until_monday = (7 - current.weekday()) % 7
+            if days_until_monday == 0:
+                days_until_monday = 7
+            next_period = current + timedelta(days=days_until_monday)
+        elif grouping == 'month':
+            period_key = current.strftime('%Y-%m')
+            # Move to next month
+            if current.month == 12:
+                next_period = current.replace(year=current.year + 1, month=1, day=1)
+            else:
+                next_period = current.replace(month=current.month + 1, day=1)
+        else:
+            period_key = current.strftime('%Y-%m-%d')
+            next_period = current + timedelta(days=1)
+        
+        periods.append(period_key)
+        client_messages_series.append(time_series_data[period_key]['client'])
+        team_messages_series.append(time_series_data[period_key]['team'])
+        
+        current = next_period
+    
+    # Calculate metrics
+    total_messages = total_client_messages + total_team_messages
+    
+    # Find peak period
+    peak_period = None
+    peak_count = 0
+    for period in periods:
+        period_total = time_series_data[period]['client'] + time_series_data[period]['team']
+        if period_total > peak_count:
+            peak_count = period_total
+            peak_period = period
+    
+    # Find peak hour
+    peak_hour = None
+    peak_hour_count = 0
+    for hour in range(24):
+        hour_total = hour_distribution[hour]['client'] + hour_distribution[hour]['team']
+        if hour_total > peak_hour_count:
+            peak_hour_count = hour_total
+            peak_hour = hour
+    
+    # Calculate average per period
+    period_count = len(periods) if periods else 1
+    avg_per_period = round(total_messages / period_count, 1) if period_count > 0 else 0
+    
+    return {
+        'metrics': {
+            'totalMessages': total_messages,
+            'avgPerPeriod': avg_per_period,
+            'peakPeriod': peak_period,
+            'peakCount': peak_count,
+            'peakHour': peak_hour,
+            'peakHourCount': peak_hour_count
+        },
+        'timeSeries': {
+            'periods': periods,
+            'clientMessages': client_messages_series,
+            'teamMessages': team_messages_series
+        },
+        'hourDistribution': {
+            'clientMessages': [hour_distribution[hour]['client'] for hour in range(24)],
+            'teamMessages': [hour_distribution[hour]['team'] for hour in range(24)]
+        },
+        'heatmaps': heatmap_data
+    }
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
