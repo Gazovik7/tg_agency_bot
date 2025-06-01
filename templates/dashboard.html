@@ -137,25 +137,120 @@
 
                 <!-- Вкладка Клиенты -->
                 <div class="tab-pane" id="clients">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Наиболее активные клиенты</h3>
+                    <div class="clients-overview">
+                        <!-- Общая статистика клиентов -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card clients-stat">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-title">Активных клиентов</div>
+                                        <div class="stat-value" id="totalActiveClients">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card clients-stat">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-comments"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-title">Сообщений от клиентов</div>
+                                        <div class="stat-value" id="totalClientMessages">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card clients-stat">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-title">Среднее сообщений на клиента</div>
+                                        <div class="stat-value" id="avgMessagesPerClient">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card clients-stat">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-font"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-title">Общий объем текста</div>
+                                        <div class="stat-value" id="totalClientCharacters">0</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="table-container">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Клиент</th>
-                                            <th>Сообщений</th>
-                                            <th>Символов</th>
-                                            <th>Средняя длина</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="activeClientsTable">
-                                        <!-- Active clients data will be populated here -->
-                                    </tbody>
-                                </table>
+
+                        <!-- Визуализация активности клиентов -->
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Распределение активности клиентов</h3>
+                                        <div class="chart-controls">
+                                            <button class="btn btn-sm btn-outline-primary active" onclick="toggleClientChartType('messages')">По сообщениям</button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="toggleClientChartType('characters')">По символам</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" id="clientActivityChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Доля активности</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" id="clientDistributionChart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Детальная информация о клиентах -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h3 class="card-title">Детальная информация о клиентах</h3>
+                                <div class="client-view-controls">
+                                    <button class="btn btn-sm btn-outline-primary active" onclick="toggleClientView('cards')">
+                                        <i class="fas fa-th-large"></i> Карточки
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="toggleClientView('table')">
+                                        <i class="fas fa-table"></i> Таблица
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Карточки клиентов -->
+                                <div id="clientCardsView" class="clients-grid">
+                                    <!-- Client cards will be populated here -->
+                                </div>
+
+                                <!-- Таблица клиентов -->
+                                <div id="clientTableView" class="table-container" style="display: none;">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Клиент</th>
+                                                <th>Сообщений</th>
+                                                <th>Символов</th>
+                                                <th>Средняя длина</th>
+                                                <th>Доля активности</th>
+                                                <th>Интенсивность</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="clientsTableBody">
+                                            <!-- Client rows will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

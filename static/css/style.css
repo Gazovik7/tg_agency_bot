@@ -403,6 +403,233 @@ body {
   color: var(--gray-800);
 }
 
+/* Clients Overview Styles */
+.clients-overview {
+  padding: 0;
+}
+
+.clients-stat {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 1rem;
+  transition: var(--transition);
+}
+
+.clients-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  opacity: 0.8;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.clients-stat .stat-title {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  opacity: 0.9;
+}
+
+.clients-stat .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chart-controls .btn {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.chart-controls .btn.active,
+.chart-controls .btn:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.client-view-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.client-view-controls .btn {
+  border-color: var(--gray-300);
+  color: var(--gray-600);
+}
+
+.client-view-controls .btn.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.client-card {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.client-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-color);
+}
+
+.client-card-header {
+  background: linear-gradient(45deg, var(--gray-100), var(--gray-50));
+  padding: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.client-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.client-name::before {
+  content: "👤";
+  font-size: 1.2rem;
+}
+
+.client-card-body {
+  padding: 1rem;
+}
+
+.client-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.client-stat-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--gray-50);
+  border-radius: calc(var(--border-radius) / 2);
+}
+
+.client-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.client-stat-label {
+  font-size: 0.8rem;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.client-metrics {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.client-metric {
+  text-align: center;
+  flex: 1;
+}
+
+.client-metric-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.client-metric-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  margin-top: 0.25rem;
+}
+
+.activity-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+}
+
+.activity-high {
+  background-color: var(--success-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.activity-medium {
+  background-color: var(--warning-color);
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.3);
+}
+
+.activity-low {
+  background-color: var(--gray-400);
+  box-shadow: 0 0 0 2px rgba(173, 181, 189, 0.3);
+}
+
+.intensity-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--gray-200);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.intensity-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.intensity-high .intensity-fill {
+  background: linear-gradient(90deg, var(--success-color), var(--accent-color));
+}
+
+.intensity-medium .intensity-fill {
+  background: linear-gradient(90deg, var(--warning-color), #ffcc02);
+}
+
+.intensity-low .intensity-fill {
+  background: linear-gradient(90deg, var(--gray-400), var(--gray-300));
+}
+
 /* Navigation */
 .navbar {
   background-color: var(--dark-color) !important;
