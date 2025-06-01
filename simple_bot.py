@@ -56,9 +56,17 @@ class SimpleTelegramBot:
     async def process_message(self, message: Message):
         """Process incoming message and save to database"""
         try:
-            # Check if user is team member
+            # Get user info
             user_id = message.from_user.id if message.from_user else 0
-            is_team_member = await self.is_team_member(user_id)
+            username = message.from_user.username if message.from_user else None
+            full_name = message.from_user.full_name if message.from_user else "Unknown"
+            
+            # Try to link team member automatically if not already linked
+            if username and user_id:
+                team_linker.check_and_link_member(user_id, username, full_name)
+            
+            # Check if user is team member
+            is_team_member = team_linker.is_team_member(user_id, username)
             
             # Save message to database
             with app.app_context():
