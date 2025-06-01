@@ -193,6 +193,9 @@ class FilteredDashboard {
         // Update clients tab
         this.updateClientsTab(data.clients);
         
+        // Update TOP lists
+        this.updateTopLists(data.clients);
+        
         // Create charts based on current tab
         const activeTab = document.querySelector('#dashboardTabs .nav-link.active');
         if (activeTab) {
@@ -1011,6 +1014,113 @@ class FilteredDashboard {
             return (num / 1000).toFixed(1) + 'K';
         }
         return num.toString();
+    }
+
+    formatTime(minutes) {
+        if (!minutes || minutes === 0) {
+            return '0 мин';
+        }
+        if (minutes < 60) {
+            return `${Math.round(minutes)} мин`;
+        } else {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = Math.round(minutes % 60);
+            if (remainingMinutes === 0) {
+                return `${hours}ч`;
+            }
+            return `${hours}ч ${remainingMinutes}мин`;
+        }
+    }
+
+    updateTopLists(clients) {
+        // Добавляем расчет sentiment score для каждого клиента (эмулируем пока нет данных)
+        const clientsWithSentiment = clients.map(client => ({
+            ...client,
+            avg_sentiment: Math.random() * 2 - 1  // Временно случайные значения от -1 до 1
+        }));
+
+        // ТОП-5 негативных клиентов (по минимальной тональности)
+        const negativeClients = [...clientsWithSentiment]
+            .sort((a, b) => a.avg_sentiment - b.avg_sentiment)
+            .slice(0, 5);
+        this.renderTopList('topNegativeClients', negativeClients, 'negative');
+
+        // ТОП-5 позитивных клиентов (по максимальной тональности) 
+        const positiveClients = [...clientsWithSentiment]
+            .sort((a, b) => b.avg_sentiment - a.avg_sentiment)
+            .slice(0, 5);
+        this.renderTopList('topPositiveClients', positiveClients, 'positive');
+
+        // ТОП-5 по объему коммуникаций (по количеству сообщений)
+        const activeClients = [...clients]
+            .sort((a, b) => b.total_messages - a.total_messages)
+            .slice(0, 5);
+        this.renderTopList('topActiveClients', activeClients, 'active');
+
+        // ТОП-5 с наибольшим временем ответа (по максимальному времени)
+        const slowResponseClients = [...clients]
+            .filter(client => client.max_response_time_minutes > 0)
+            .sort((a, b) => b.max_response_time_minutes - a.max_response_time_minutes)
+            .slice(0, 5);
+        this.renderTopList('topSlowResponseClients', slowResponseClients, 'slow');
+    }
+
+    renderTopList(containerId, clients, type) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const items = clients.map((client, index) => {
+            const initials = this.getClientInitials(client.name);
+            let metricValue = '';
+            let metricClass = '';
+
+            switch (type) {
+                case 'negative':
+                    metricValue = client.avg_sentiment.toFixed(2);
+                    metricClass = 'sentiment-negative px-3 py-1 rounded-full text-sm font-semibold';
+                    break;
+                case 'positive':
+                    metricValue = client.avg_sentiment.toFixed(2);
+                    metricClass = 'sentiment-positive px-3 py-1 rounded-full text-sm font-semibold';
+                    break;
+                case 'active':
+                    metricValue = `${client.total_messages} сооб.`;
+                    metricClass = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold';
+                    break;
+                case 'slow':
+                    metricValue = this.formatTime(client.max_response_time_minutes);
+                    metricClass = 'bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold';
+                    break;
+            }
+
+            return `
+                <div class="top-list-item flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-semibold">${initials}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">${this.escapeHtml(client.name)}</p>
+                            <p class="text-sm text-gray-500">${client.total_messages} сообщений</p>
+                        </div>
+                    </div>
+                    <div class="${metricClass}">
+                        ${metricValue}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = items || '<p class="text-gray-500 text-sm">Нет данных</p>';
+    }
+
+    getClientInitials(name) {
+        if (!name) return 'НД';
+        const words = name.split(' ').filter(word => word.length > 0);
+        if (words.length >= 2) {
+            return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+        }
+        return words[0].charAt(0).toUpperCase() + (words[0].charAt(1) || '').toUpperCase();
     }
 
     // Client chart controls

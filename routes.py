@@ -860,6 +860,19 @@ def filtered_dashboard_data():
         employees_data.sort(key=lambda x: x['message_count'], reverse=True)
         clients_data.sort(key=lambda x: x['communication_intensity'], reverse=True)
         
+        # Calculate average sentiment score
+        sentiment_messages = [m for m in messages if m.sentiment_score is not None and not m.is_team_member]
+        avg_sentiment_score = 0
+        if sentiment_messages:
+            avg_sentiment_score = sum(m.sentiment_score for m in sentiment_messages) / len(sentiment_messages)
+
+        # Calculate active clients (clients who wrote in the last month)
+        one_month_ago = datetime.utcnow() - timedelta(days=30)
+        active_client_count = db.session.query(func.count(func.distinct(Message.user_id))).filter(
+            Message.timestamp >= one_month_ago,
+            Message.is_team_member == False
+        ).scalar() or 0
+
         return jsonify({
             'general_stats': {
                 'total_messages': total_messages,
@@ -870,6 +883,8 @@ def filtered_dashboard_data():
                 'max_response_time_minutes': overall_response_metrics.get('max_response_time_minutes', 0),
                 'median_response_time_minutes': overall_response_metrics.get('median_response_time_minutes', 0),
                 'total_responses': overall_response_metrics.get('total_responses', 0),
+                'avg_sentiment_score': round(avg_sentiment_score, 2),
+                'active_clients': active_client_count,
                 'client_percentage': round((client_messages / total_messages * 100), 1) if total_messages else 0,
                 'team_percentage': round((team_messages / total_messages * 100), 1) if total_messages else 0
             },
