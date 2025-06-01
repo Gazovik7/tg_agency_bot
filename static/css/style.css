@@ -408,6 +408,245 @@ body {
   padding: 0;
 }
 
+/* Sentiment Analysis Styles */
+.sentiment-stat {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition);
+  height: 100%;
+}
+
+.sentiment-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.sentiment-stat.positive {
+  border-left: 4px solid #28a745;
+}
+
+.sentiment-stat.negative {
+  border-left: 4px solid #dc3545;
+}
+
+.sentiment-stat.neutral {
+  border-left: 4px solid #6c757d;
+}
+
+.sentiment-stat.overall {
+  border-left: 4px solid var(--primary-color);
+}
+
+.sentiment-icon {
+  font-size: 2.5rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.sentiment-data {
+  flex: 1;
+}
+
+.sentiment-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1;
+}
+
+.sentiment-percentage {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-top: 0.25rem;
+}
+
+.sentiment-score {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-top: 0.25rem;
+}
+
+.sentiment-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
+/* Communications Styles */
+.communications-container {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.chat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.chat-tab {
+  padding: 0.5rem 1rem;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  text-decoration: none;
+  transition: var(--transition);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.chat-tab:hover {
+  background: var(--gray-200);
+  color: var(--gray-800);
+}
+
+.chat-tab.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.messages-list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.message-item {
+  display: flex;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.message-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.message-item.client {
+  border-left: 4px solid #007bff;
+}
+
+.message-item.team {
+  border-left: 4px solid #28a745;
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: white;
+}
+
+.message-avatar.client {
+  background: #007bff;
+}
+
+.message-avatar.team {
+  background: #28a745;
+}
+
+.message-content {
+  flex: 1;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.message-sender {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.message-time {
+  font-size: 0.75rem;
+}
+
+.message-chat {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--gray-100);
+  border-radius: 0.25rem;
+}
+
+.message-text {
+  color: var(--gray-700);
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.message-sentiment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.message-sentiment.positive {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.message-sentiment.negative {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.message-sentiment.neutral {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+.loading-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-600);
+}
+
+.no-messages {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-600);
+  font-style: italic;
+}
+
 .clients-stat {
   display: flex;
   align-items: center;

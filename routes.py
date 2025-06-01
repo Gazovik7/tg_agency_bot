@@ -10,6 +10,7 @@ from models import Chat, Message, KpiLive, TeamMember, SystemConfig
 from config_manager import ConfigManager
 from kpi_calculator import KpiCalculator
 from response_time_analyzer import ResponseTimeAnalyzer
+from sentiment_analyzer import SentimentAnalyzer
 from timezone_utils import moscow_date_to_utc_range, utc_to_moscow, format_moscow_date, get_moscow_now, format_configured_time
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Initialize components
 config_manager = ConfigManager()
 kpi_calculator = KpiCalculator()
+sentiment_analyzer = SentimentAnalyzer()
 
 
 def verify_admin_token():
@@ -1055,6 +1057,220 @@ def slow_response_alerts():
         
     except Exception as e:
         logger.error(f"Error getting slow response alerts: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/sentiment-overview')
+def sentiment_overview():
+    """API endpoint for sentiment overview section"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        hours = request.args.get('hours', 24, type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        chat_id = request.args.get('chat_id')
+        
+        # Parse date filters
+        if start_date and end_date:
+            start_time, end_time = moscow_date_to_utc_range(start_date, end_date)
+        else:
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(hours=hours)
+        
+        # Build query filters
+        filters = [
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time,
+            Message.is_team_member == False,  # Only client messages
+            Message.sentiment_label.isnot(None)
+        ]
+        
+        if chat_id:
+            filters.append(Message.chat_id == int(chat_id))
+        
+        # Get sentiment distribution for client messages
+        sentiment_counts = db.session.query(
+            Message.sentiment_label,
+            func.count(Message.id).label('count'),
+            func.avg(Message.sentiment_score).label('avg_score')
+        ).filter(*filters).group_by(Message.sentiment_label).all()
+        
+        # Calculate overall sentiment statistics
+        total_messages = sum(row.count for row in sentiment_counts)
+        sentiment_data = {
+            'positive': 0,
+            'negative': 0,
+            'neutral': 0,
+            'positive_percentage': 0,
+            'negative_percentage': 0,
+            'neutral_percentage': 0,
+            'avg_score': 0
+        }
+        
+        total_score = 0
+        for row in sentiment_counts:
+            label = row.sentiment_label.lower()
+            if label in sentiment_data:
+                sentiment_data[label] = row.count
+                sentiment_data[f'{label}_percentage'] = round((row.count / total_messages * 100), 1) if total_messages > 0 else 0
+                total_score += (row.avg_score or 0) * row.count
+        
+        sentiment_data['avg_score'] = round(total_score / total_messages, 2) if total_messages > 0 else 0
+        sentiment_data['total_messages'] = total_messages
+        
+        # Get sentiment trend by day
+        daily_sentiment = db.session.query(
+            func.date(Message.timestamp).label('date'),
+            Message.sentiment_label,
+            func.count(Message.id).label('count'),
+            func.avg(Message.sentiment_score).label('avg_score')
+        ).filter(*filters).group_by('date', Message.sentiment_label).order_by('date').all()
+        
+        # Process daily data
+        daily_data = {}
+        for row in daily_sentiment:
+            date_str = row.date.strftime('%Y-%m-%d')
+            if date_str not in daily_data:
+                daily_data[date_str] = {'positive': 0, 'negative': 0, 'neutral': 0}
+            daily_data[date_str][row.sentiment_label.lower()] = row.count
+        
+        # Format for chart
+        dates = sorted(daily_data.keys())
+        trend_data = {
+            'labels': [datetime.strptime(d, '%Y-%m-%d').strftime('%m/%d') for d in dates],
+            'positive': [daily_data[d]['positive'] for d in dates],
+            'negative': [daily_data[d]['negative'] for d in dates],
+            'neutral': [daily_data[d]['neutral'] for d in dates]
+        }
+        
+        return jsonify({
+            'summary': sentiment_data,
+            'trend': trend_data,
+            'period': {
+                'start': format_configured_time(start_time, '%Y-%m-%d'),
+                'end': format_configured_time(end_time, '%Y-%m-%d'),
+                'hours': hours
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting sentiment overview: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/recent-communications')
+def recent_communications():
+    """API endpoint for recent communications section"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        chat_id = request.args.get('chat_id')
+        hours = request.args.get('hours', 24, type=int)
+        
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+        
+        # Build query filters
+        filters = [
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time
+        ]
+        
+        if chat_id:
+            filters.append(Message.chat_id == int(chat_id))
+        
+        # Get recent messages with chat info
+        recent_messages = db.session.query(
+            Message.id,
+            Message.message_id,
+            Message.text,
+            Message.timestamp,
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            Message.is_team_member,
+            Message.sentiment_label,
+            Message.sentiment_score,
+            Chat.title.label('chat_title'),
+            Chat.id.label('chat_id')
+        ).join(Chat, Message.chat_id == Chat.id).filter(
+            *filters
+        ).order_by(desc(Message.timestamp)).limit(limit).all()
+        
+        # Format messages
+        messages_data = []
+        for msg in recent_messages:
+            # Determine sender type and name
+            if msg.is_team_member:
+                sender_type = 'team'
+                sender_name = msg.full_name or msg.username or 'Сотрудник'
+            else:
+                sender_type = 'client'
+                sender_name = msg.full_name or msg.username or 'Клиент'
+            
+            # Format sentiment
+            sentiment_info = None
+            if msg.sentiment_label and msg.sentiment_score is not None:
+                sentiment_info = {
+                    'label': msg.sentiment_label,
+                    'score': round(msg.sentiment_score, 2),
+                    'emoji': '😊' if msg.sentiment_label == 'positive' else '😠' if msg.sentiment_label == 'negative' else '😐'
+                }
+            
+            messages_data.append({
+                'id': msg.id,
+                'text': msg.text[:200] + '...' if msg.text and len(msg.text) > 200 else msg.text,
+                'full_text': msg.text,
+                'timestamp': format_configured_time(msg.timestamp, '%H:%M:%S'),
+                'date': format_configured_time(msg.timestamp, '%Y-%m-%d'),
+                'sender_name': sender_name,
+                'sender_type': sender_type,
+                'chat_title': msg.chat_title,
+                'chat_id': msg.chat_id,
+                'sentiment': sentiment_info
+            })
+        
+        # Get chat statistics
+        chat_stats = db.session.query(
+            Chat.id,
+            Chat.title,
+            func.count(Message.id).label('message_count'),
+            func.sum(func.cast(~Message.is_team_member, db.Integer)).label('client_messages'),
+            func.sum(func.cast(Message.is_team_member, db.Integer)).label('team_messages'),
+            func.max(Message.timestamp).label('last_activity')
+        ).join(Message, Chat.id == Message.chat_id).filter(
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time
+        ).group_by(Chat.id, Chat.title).order_by(desc('last_activity')).all()
+        
+        chats_data = []
+        for chat in chat_stats:
+            chats_data.append({
+                'chat_id': chat.id,
+                'title': chat.title,
+                'message_count': chat.message_count,
+                'client_messages': chat.client_messages,
+                'team_messages': chat.team_messages,
+                'last_activity': format_configured_time(chat.last_activity, '%H:%M:%S')
+            })
+        
+        return jsonify({
+            'messages': messages_data,
+            'chats': chats_data,
+            'total_messages': len(messages_data),
+            'period': {
+                'start': format_configured_time(start_time, '%Y-%m-%d %H:%M'),
+                'end': format_configured_time(end_time, '%Y-%m-%d %H:%M'),
+                'hours': hours
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting recent communications: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 

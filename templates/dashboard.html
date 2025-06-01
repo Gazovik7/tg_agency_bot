@@ -276,12 +276,69 @@
 
                 <!-- Вкладка Тональность -->
                 <div class="tab-pane" id="sentiment">
+                    <!-- Общая статистика тональности -->
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Анализ тональности сообщений</h3>
+                            <h3 class="card-title">Анализ тональности клиентских сообщений</h3>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container" id="sentimentChart"></div>
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="sentiment-stat positive">
+                                        <div class="sentiment-icon">😊</div>
+                                        <div class="sentiment-data">
+                                            <div class="sentiment-count" id="positiveCount">0</div>
+                                            <div class="sentiment-percentage" id="positivePercentage">0%</div>
+                                            <div class="sentiment-label">Позитивные</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="sentiment-stat negative">
+                                        <div class="sentiment-icon">😠</div>
+                                        <div class="sentiment-data">
+                                            <div class="sentiment-count" id="negativeCount">0</div>
+                                            <div class="sentiment-percentage" id="negativePercentage">0%</div>
+                                            <div class="sentiment-label">Негативные</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="sentiment-stat neutral">
+                                        <div class="sentiment-icon">😐</div>
+                                        <div class="sentiment-data">
+                                            <div class="sentiment-count" id="neutralCount">0</div>
+                                            <div class="sentiment-percentage" id="neutralPercentage">0%</div>
+                                            <div class="sentiment-label">Нейтральные</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="sentiment-stat overall">
+                                        <div class="sentiment-icon">📊</div>
+                                        <div class="sentiment-data">
+                                            <div class="sentiment-count" id="totalAnalyzed">0</div>
+                                            <div class="sentiment-score" id="avgScore">0.00</div>
+                                            <div class="sentiment-label">Общий рейтинг</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="chart-container">
+                                        <h5>Распределение тональности</h5>
+                                        <div id="sentimentDistributionChart"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="chart-container">
+                                        <h5>Динамика тональности по дням</h5>
+                                        <div id="sentimentTrendChart"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -290,10 +347,38 @@
                 <div class="tab-pane" id="communications">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Обзор коммуникаций</h3>
+                            <h3 class="card-title">Последние сообщения</h3>
+                            <div class="d-flex align-items-center">
+                                <select class="form-select form-select-sm me-2" id="communicationsLimit" style="width: auto;">
+                                    <option value="20">20 сообщений</option>
+                                    <option value="50" selected>50 сообщений</option>
+                                    <option value="100">100 сообщений</option>
+                                </select>
+                                <button class="btn btn-outline-primary btn-sm" onclick="refreshCommunications()">
+                                    <i class="fas fa-sync-alt"></i> Обновить
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container" id="communicationsChart"></div>
+                            <div class="communications-container">
+                                <!-- Фильтры чатов -->
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="chat-tabs" id="chatTabs">
+                                            <button class="chat-tab active" data-chat-id="" onclick="filterByChat('')">
+                                                Все чаты
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Список сообщений -->
+                                <div class="messages-list" id="messagesList">
+                                    <div class="loading-placeholder">
+                                        <i class="fas fa-spinner fa-spin"></i> Загрузка сообщений...
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
