@@ -36,5 +36,5 @@ with app.app_context():
 # Import routes after app initialization
 from routes import *  # noqa: F401, F403
 
-# Import webhook handler
-from webhook_handler import *  # noqa: F401, F403
+# Import telegram webhook handler
+from telegram_webhook import *  # noqa: F401, F403

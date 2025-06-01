@@ -1,107 +1,58 @@
 #!/usr/bin/env python3
 """
-Настройка веб-хука для Telegram бота
+Setup Telegram webhook
 """
-import requests
 import os
+import requests
 
-def setup_telegram_webhook():
-    """Настройка веб-хука для Telegram бота"""
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    
-    if not bot_token:
-        print("TELEGRAM_BOT_TOKEN не найден в переменных окружения")
+def setup_webhook():
+    """Setup Telegram webhook"""
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not token:
+        print("TELEGRAM_BOT_TOKEN not found")
         return False
     
-    # URL веб-хука (замените на ваш домен Replit)
-    webhook_url = "https://your-repl-name.your-username.replit.app/webhook/telegram"
+    # Get the webhook URL (Replit domain)
+    webhook_url = "https://workspace.ivan-test-user-7.repl.co/telegram/webhook"
     
-    # Настройка веб-хука
-    set_webhook_url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
-    
-    payload = {
+    # Setup webhook
+    url = f"https://api.telegram.org/bot{token}/setWebhook"
+    data = {
         'url': webhook_url,
         'allowed_updates': ['message']
     }
     
-    try:
-        response = requests.post(set_webhook_url, json=payload)
-        result = response.json()
-        
-        if result.get('ok'):
-            print(f"Веб-хук успешно настроен на: {webhook_url}")
-            return True
-        else:
-            print(f"Ошибка настройки веб-хука: {result.get('description')}")
-            return False
-            
-    except Exception as e:
-        print(f"Ошибка при настройке веб-хука: {e}")
+    response = requests.post(url, json=data)
+    result = response.json()
+    
+    if result.get('ok'):
+        print(f"Webhook set successfully to: {webhook_url}")
+        return True
+    else:
+        print(f"Error setting webhook: {result}")
         return False
 
 def get_webhook_info():
-    """Получение информации о текущем веб-хуке"""
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    
-    if not bot_token:
-        print("TELEGRAM_BOT_TOKEN не найден")
+    """Get current webhook info"""
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not token:
+        print("TELEGRAM_BOT_TOKEN not found")
         return
     
-    info_url = f"https://api.telegram.org/bot{bot_token}/getWebhookInfo"
+    url = f"https://api.telegram.org/bot{token}/getWebhookInfo"
+    response = requests.get(url)
+    result = response.json()
     
-    try:
-        response = requests.get(info_url)
-        result = response.json()
-        
-        if result.get('ok'):
-            webhook_info = result.get('result', {})
-            print("Информация о веб-хуке:")
-            print(f"URL: {webhook_info.get('url', 'Не установлен')}")
-            print(f"Последняя ошибка: {webhook_info.get('last_error_message', 'Нет')}")
-            print(f"Количество ошибок: {webhook_info.get('last_error_date', 'Нет')}")
-        else:
-            print(f"Ошибка получения информации: {result.get('description')}")
-            
-    except Exception as e:
-        print(f"Ошибка: {e}")
-
-def delete_webhook():
-    """Удаление веб-хука (возврат к polling)"""
-    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    
-    if not bot_token:
-        print("TELEGRAM_BOT_TOKEN не найден")
-        return False
-    
-    delete_url = f"https://api.telegram.org/bot{bot_token}/deleteWebhook"
-    
-    try:
-        response = requests.post(delete_url)
-        result = response.json()
-        
-        if result.get('ok'):
-            print("Веб-хук успешно удален")
-            return True
-        else:
-            print(f"Ошибка удаления веб-хука: {result.get('description')}")
-            return False
-            
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        return False
+    if result.get('ok'):
+        info = result.get('result', {})
+        print(f"Current webhook URL: {info.get('url', 'Not set')}")
+        print(f"Pending updates: {info.get('pending_update_count', 0)}")
+        print(f"Last error: {info.get('last_error_message', 'None')}")
+    else:
+        print(f"Error getting webhook info: {result}")
 
 if __name__ == "__main__":
-    print("1. Получить информацию о веб-хуке")
-    print("2. Настроить веб-хук")
-    print("3. Удалить веб-хук")
-    
-    choice = input("Выберите действие (1-3): ").strip()
-    
-    if choice == "1":
-        get_webhook_info()
-    elif choice == "2":
-        setup_telegram_webhook()
-    elif choice == "3":
-        delete_webhook()
-    else:
-        print("Неверный выбор")
+    print("Setting up Telegram webhook...")
+    setup_webhook()
+    print("\nCurrent webhook info:")
+    get_webhook_info()
