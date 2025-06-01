@@ -1144,7 +1144,10 @@ class FilteredDashboard {
 
     createSentimentTrendChart(data) {
         const ctx = document.getElementById('sentimentTrendChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.log('Sentiment trend chart canvas not found');
+            return;
+        }
 
         // Уничтожаем существующий график если есть
         if (this.charts.sentimentTrendChart) {
@@ -1366,34 +1369,43 @@ class FilteredDashboard {
     updateSentimentChartPeriod(period) {
         if (!this.charts.sentimentTrendChart) return;
         
+        // Используем текущий временной диапазон из фильтров
+        const startDate = new Date(this.currentFilters.start_date);
+        const endDate = new Date(this.currentFilters.end_date);
+        
         const labels = [];
         const data = [];
-        const now = new Date();
         
-        // Generate data based on period
+        // Группируем данные в зависимости от выбранного периода
         if (period === 'day') {
-            // Last 24 hours
-            for (let i = 23; i >= 0; i--) {
-                const time = new Date(now);
-                time.setHours(time.getHours() - i);
-                labels.push(time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
-                data.push(Math.random() * 2 - 1); // Random sentiment for demo
+            // Группировка по дням в рамках выбранного периода
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                labels.push(currentDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+                // Здесь должны быть реальные данные из базы, пока используем демо-данные
+                data.push((Math.random() - 0.5) * 1.5);
+                currentDate.setDate(currentDate.getDate() + 1);
             }
         } else if (period === 'week') {
-            // Last 7 days
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('ru-RU', { weekday: 'short' }));
-                data.push(Math.random() * 2 - 1);
+            // Группировка по неделям
+            const currentDate = new Date(startDate);
+            currentDate.setDate(currentDate.getDate() - currentDate.getDay()); // Начало недели
+            
+            let weekNumber = 1;
+            while (currentDate <= endDate) {
+                labels.push(`Неделя ${weekNumber}`);
+                data.push((Math.random() - 0.5) * 1.5);
+                currentDate.setDate(currentDate.getDate() + 7);
+                weekNumber++;
             }
         } else if (period === 'month') {
-            // Last 30 days
-            for (let i = 29; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-                data.push(Math.random() * 2 - 1);
+            // Группировка по месяцам
+            const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+            
+            while (currentDate <= endDate) {
+                labels.push(currentDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }));
+                data.push((Math.random() - 0.5) * 1.5);
+                currentDate.setMonth(currentDate.getMonth() + 1);
             }
         }
         
@@ -1405,34 +1417,43 @@ class FilteredDashboard {
     updateResponseTimeChartPeriod(period) {
         if (!this.charts.responseTimeTrendChart) return;
         
+        // Используем текущий временной диапазон из фильтров
+        const startDate = new Date(this.currentFilters.start_date);
+        const endDate = new Date(this.currentFilters.end_date);
+        
         const labels = [];
         const data = [];
-        const now = new Date();
         
-        // Generate data based on period
+        // Группируем данные в зависимости от выбранного периода
         if (period === 'day') {
-            // Last 24 hours
-            for (let i = 23; i >= 0; i--) {
-                const time = new Date(now);
-                time.setHours(time.getHours() - i);
-                labels.push(time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
-                data.push(Math.random() * 120 + 30); // Random response time 30-150 min
+            // Группировка по дням в рамках выбранного периода
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                labels.push(currentDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+                // Здесь должны быть реальные данные из базы, пока используем демо-данные
+                data.push(Math.random() * 150 + 50); // 50-200 минут
+                currentDate.setDate(currentDate.getDate() + 1);
             }
         } else if (period === 'week') {
-            // Last 7 days
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('ru-RU', { weekday: 'short' }));
-                data.push(Math.random() * 120 + 30);
+            // Группировка по неделям
+            const currentDate = new Date(startDate);
+            currentDate.setDate(currentDate.getDate() - currentDate.getDay()); // Начало недели
+            
+            let weekNumber = 1;
+            while (currentDate <= endDate) {
+                labels.push(`Неделя ${weekNumber}`);
+                data.push(Math.random() * 150 + 50);
+                currentDate.setDate(currentDate.getDate() + 7);
+                weekNumber++;
             }
         } else if (period === 'month') {
-            // Last 30 days
-            for (let i = 29; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-                data.push(Math.random() * 120 + 30);
+            // Группировка по месяцам
+            const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+            
+            while (currentDate <= endDate) {
+                labels.push(currentDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }));
+                data.push(Math.random() * 150 + 50);
+                currentDate.setMonth(currentDate.getMonth() + 1);
             }
         }
         
