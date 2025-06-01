@@ -758,18 +758,21 @@ class FilteredDashboard {
         
         // Create charts if containers exist and data is available
         const timeSeriesContainer = document.getElementById('activityTimeSeriesChart');
-        if (timeSeriesContainer && data.time_series) {
-            this.createActivityTimeSeries(data, grouping);
+        if (timeSeriesContainer && data.timeSeries) {
+            console.log('Creating time series chart with data:', data.timeSeries);
+            this.createActivityTimeSeries(data.timeSeries, grouping);
         }
         
         const hourHistogramContainer = document.getElementById('activityHourHistogram');
-        if (hourHistogramContainer && data.hour_histogram) {
-            this.createActivityHourHistogram(data);
+        if (hourHistogramContainer && data.hourDistribution) {
+            console.log('Creating hour histogram with data:', data.hourDistribution);
+            this.createActivityHourHistogram(data.hourDistribution);
         }
         
-        const heatmapsContainer = document.getElementById('activityHeatmaps');
-        if (heatmapsContainer && data.daily_heatmap) {
-            this.createActivityHeatmaps(data);
+        const heatmapsContainer = document.getElementById('activityClientHeatmap');
+        if (heatmapsContainer && data.heatmaps) {
+            console.log('Creating heatmaps with data:', data.heatmaps);
+            this.createActivityHeatmaps(data.heatmaps);
         }
     }
 
