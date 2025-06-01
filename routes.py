@@ -694,11 +694,17 @@ def filtered_dashboard_data():
         # Get filtered messages
         messages = db.session.query(Message).filter(*query_filters).all()
         
+        # Debug log
+        logger.info(f"Filtered messages count: {len(messages)}")
+        logger.info(f"Query filters: {query_filters}")
+        
         # Calculate statistics
         total_messages = len(messages)
         client_messages = len([m for m in messages if not m.is_team_member])
         team_messages = len([m for m in messages if m.is_team_member])
         total_symbols = sum(len(m.text or '') for m in messages)
+        
+        logger.info(f"Stats: total={total_messages}, client={client_messages}, team={team_messages}, symbols={total_symbols}")
         
         # Calculate response times
         response_times = [m.response_time_seconds for m in messages if m.response_time_seconds is not None]
