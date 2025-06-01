@@ -724,55 +724,69 @@ def filtered_dashboard_data():
                 'character_count': emp.character_count or 0
             })
         
-        # Get client communication data (grouped by chat/client organization)
-        chat_stats = db.session.query(
-            Chat.id.label('chat_id'),
-            Chat.title.label('chat_title'),
-            func.count(func.case([(Message.is_team_member == True, 1)])).label('team_messages'),
-            func.count(func.case([(Message.is_team_member == False, 1)])).label('client_messages'),
-            func.sum(func.case([(Message.is_team_member == True, func.length(Message.text))])).label('team_characters'),
-            func.sum(func.case([(Message.is_team_member == False, func.length(Message.text))])).label('client_characters'),
-            func.count(Message.id).label('total_messages'),
-            func.sum(func.length(Message.text)).label('total_characters')
-        ).join(Chat, Message.chat_id == Chat.id).filter(*query_filters).group_by(
-            Chat.id, Chat.title
-        ).all()
+        # Get all chats with messages in the filtered period
+        active_chats = db.session.query(Chat).join(Message).filter(*query_filters).distinct().all()
         
         clients_data = []
-        for chat in chat_stats:
-            # Calculate communication balance
-            total_messages = chat.team_messages + chat.client_messages
-            total_characters = (chat.team_characters or 0) + (chat.client_characters or 0)
+        for chat in active_chats:
+            # Get team messages for this chat
+            team_stats = db.session.query(
+                func.count(Message.id).label('count'),
+                func.sum(func.length(Message.text)).label('characters')
+            ).filter(
+                Message.chat_id == chat.id,
+                Message.is_team_member == True,
+                *query_filters
+            ).first()
+            
+            # Get client messages for this chat
+            client_stats = db.session.query(
+                func.count(Message.id).label('count'),
+                func.sum(func.length(Message.text)).label('characters')
+            ).filter(
+                Message.chat_id == chat.id,
+                Message.is_team_member == False,
+                *query_filters
+            ).first()
+            
+            team_messages = team_stats.count or 0
+            team_characters = team_stats.characters or 0
+            client_messages = client_stats.count or 0
+            client_characters = client_stats.characters or 0
+            
+            total_messages = team_messages + client_messages
+            total_characters = team_characters + client_characters
             
             if total_messages > 0:
-                team_message_ratio = (chat.team_messages / total_messages) * 100
-                client_message_ratio = (chat.client_messages / total_messages) * 100
+                team_message_ratio = (team_messages / total_messages) * 100
+                client_message_ratio = (client_messages / total_messages) * 100
             else:
                 team_message_ratio = 0
                 client_message_ratio = 0
             
             if total_characters > 0:
-                team_char_ratio = ((chat.team_characters or 0) / total_characters) * 100
-                client_char_ratio = ((chat.client_characters or 0) / total_characters) * 100
+                team_char_ratio = (team_characters / total_characters) * 100
+                client_char_ratio = (client_characters / total_characters) * 100
             else:
                 team_char_ratio = 0
                 client_char_ratio = 0
             
-            clients_data.append({
-                'chat_id': chat.chat_id,
-                'name': chat.chat_title,
-                'team_messages': chat.team_messages,
-                'client_messages': chat.client_messages,
-                'team_characters': chat.team_characters or 0,
-                'client_characters': chat.client_characters or 0,
-                'total_messages': total_messages,
-                'total_characters': total_characters,
-                'team_message_ratio': round(team_message_ratio, 1),
-                'client_message_ratio': round(client_message_ratio, 1),
-                'team_char_ratio': round(team_char_ratio, 1),
-                'client_char_ratio': round(client_char_ratio, 1),
-                'communication_intensity': total_messages  # For sorting
-            })
+            if total_messages > 0:  # Only include chats with messages
+                clients_data.append({
+                    'chat_id': chat.id,
+                    'name': chat.title,
+                    'team_messages': team_messages,
+                    'client_messages': client_messages,
+                    'team_characters': team_characters,
+                    'client_characters': client_characters,
+                    'total_messages': total_messages,
+                    'total_characters': total_characters,
+                    'team_message_ratio': round(team_message_ratio, 1),
+                    'client_message_ratio': round(client_message_ratio, 1),
+                    'team_char_ratio': round(team_char_ratio, 1),
+                    'client_char_ratio': round(client_char_ratio, 1),
+                    'communication_intensity': total_messages  # For sorting
+                })
         
         # Sort by communication intensity
         employees_data.sort(key=lambda x: x['message_count'], reverse=True)
