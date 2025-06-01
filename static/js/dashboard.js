@@ -198,7 +198,8 @@ class FilteredDashboard {
             'teamMessagesStats': stats.team_messages,
             'clientMessagesStats': stats.client_messages,
             'avgResponseStats': `${stats.avg_response_time_minutes} мин`,
-            'maxResponseStats': `${stats.max_response_time_minutes} мин`
+            'maxResponseStats': `${stats.max_response_time_minutes} мин`,
+            'medianResponseStats': `${stats.median_response_time_minutes || 0} мин`
         };
 
         Object.keys(elements).forEach(id => {
@@ -447,7 +448,7 @@ class FilteredDashboard {
 
         if (!clients.length) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="6" class="text-center text-muted py-4">Нет данных о клиентах за выбранный период</td>';
+            row.innerHTML = '<td colspan="7" class="text-center text-muted py-4">Нет данных о клиентах за выбранный период</td>';
             tableBody.appendChild(row);
             return;
         }
@@ -473,8 +474,9 @@ class FilteredDashboard {
                     <span style="color: #4361ee;">${this.formatNumber(client.team_characters)}</span> / 
                     <span style="color: #4cc9f0;">${this.formatNumber(client.client_characters)}</span>
                 </td>
-                <td>${client.team_message_ratio}% / ${client.client_message_ratio}%</td>
-                <td>${activityPercent.toFixed(1)}%</td>
+                <td>${this.formatResponseTime(client.avg_response_time_minutes)}</td>
+                <td>${this.formatResponseTime(client.max_response_time_minutes)}</td>
+                <td>${this.formatResponseTime(client.median_response_time_minutes)}</td>
                 <td>
                     <div class="intensity-bar ${activityLevel.class}">
                         <div class="intensity-fill" style="width: ${intensityPercent}%"></div>
