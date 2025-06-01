@@ -1149,8 +1149,8 @@ def sentiment_overview():
             'summary': sentiment_data,
             'trend': trend_data,
             'period': {
-                'start': format_configured_time(start_time, '%Y-%m-%d'),
-                'end': format_configured_time(end_time, '%Y-%m-%d'),
+                'start': start_time.strftime('%Y-%m-%d'),
+                'end': end_time.strftime('%Y-%m-%d'),
                 'hours': hours
             }
         })
@@ -1225,8 +1225,8 @@ def recent_communications():
                 'id': msg.id,
                 'text': msg.text[:200] + '...' if msg.text and len(msg.text) > 200 else msg.text,
                 'full_text': msg.text,
-                'timestamp': format_configured_time(msg.timestamp, '%H:%M:%S'),
-                'date': format_configured_time(msg.timestamp, '%Y-%m-%d'),
+                'timestamp': msg.timestamp.strftime('%H:%M:%S'),
+                'date': msg.timestamp.strftime('%Y-%m-%d'),
                 'sender_name': sender_name,
                 'sender_type': sender_type,
                 'chat_title': msg.chat_title,
@@ -1255,7 +1255,7 @@ def recent_communications():
                 'message_count': chat.message_count,
                 'client_messages': chat.client_messages,
                 'team_messages': chat.team_messages,
-                'last_activity': format_configured_time(chat.last_activity, '%H:%M:%S')
+                'last_activity': chat.last_activity.strftime('%H:%M:%S')
             })
         
         return jsonify({
@@ -1263,8 +1263,8 @@ def recent_communications():
             'chats': chats_data,
             'total_messages': len(messages_data),
             'period': {
-                'start': format_configured_time(start_time, '%Y-%m-%d %H:%M'),
-                'end': format_configured_time(end_time, '%Y-%m-%d %H:%M'),
+                'start': start_time.strftime('%Y-%m-%d %H:%M'),
+                'end': end_time.strftime('%Y-%m-%d %H:%M'),
                 'hours': hours
             }
         })
