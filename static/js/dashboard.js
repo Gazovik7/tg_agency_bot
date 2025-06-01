@@ -234,10 +234,70 @@ class FilteredDashboard {
     }
 
     updateEmployeesTab(employees) {
-        // Create employee activity chart
-        if (employees && employees.length > 0) {
-            this.createEmployeeChart(employees);
+        try {
+            // Create employee activity chart
+            if (employees && employees.length > 0) {
+                this.createEmployeeChart(employees);
+                this.updateEmployeesTable(employees);
+            } else {
+                // Show empty state
+                const chartContainer = document.getElementById('employeeActivityChart');
+                if (chartContainer) {
+                    chartContainer.innerHTML = '<div class="text-center text-gray-500 py-8">Нет данных о сотрудниках</div>';
+                }
+                
+                const tableBody = document.getElementById('employeesTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-8">Нет данных о сотрудниках</td></tr>';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating employees tab:', error);
         }
+    }
+
+    updateEmployeesTable(employees) {
+        const tableBody = document.getElementById('employeesTableBody');
+        if (!tableBody) return;
+
+        const rows = employees.map(employee => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-purple-600 text-sm font-medium">${employee.full_name.charAt(0)}</span>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">${this.escapeHtml(employee.full_name)}</div>
+                            <div class="text-sm text-gray-500">${this.escapeHtml(employee.role || 'Сотрудник')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${employee.message_count || 0}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${this.formatNumber(employee.character_count || 0)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${employee.avg_response_time ? Math.round(employee.avg_response_time) + ' мин' : '—'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${this.getActivityBadgeClass(employee.message_count || 0)}">
+                        ${this.getActivityLevel(employee.message_count || 0)}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+
+        tableBody.innerHTML = rows;
+    }
+
+    getActivityBadgeClass(messageCount) {
+        if (messageCount >= 50) return 'bg-green-100 text-green-800';
+        if (messageCount >= 20) return 'bg-yellow-100 text-yellow-800';
+        if (messageCount >= 5) return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
     }
 
     updateClientsTab(clients) {
@@ -1263,11 +1323,28 @@ class FilteredDashboard {
     }
 
     updateCommunicationsDisplay(data) {
-        // Update chat tabs
-        this.updateChatTabs(data.chats || []);
-        
-        // Update messages list
-        this.updateMessagesList(data.messages || []);
+        try {
+            console.log('Updating communications display with data:', data);
+            
+            if (data.chats && data.chats.length > 0) {
+                this.updateChatTabs(data.chats);
+            } else {
+                console.log('No chats data available');
+            }
+            
+            if (data.messages && data.messages.length > 0) {
+                this.updateMessagesList(data.messages);
+            } else {
+                console.log('No messages data available');
+                // Show empty state message
+                const messagesContainer = document.getElementById('messagesList');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8">Нет сообщений для отображения</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating communications display:', error);
+        }
     }
 
     updateChatTabs(chats) {
