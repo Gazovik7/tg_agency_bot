@@ -190,6 +190,130 @@
                             <span class="text-gray-500">в сообщениях</span>
                         </div>
                     </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Медианное время ответа</h3>
+                            <i class="fas fa-clock text-yellow-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="medianResponseTime">0 мин</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">среднее по периоду</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Максимальное время ответа</h3>
+                            <i class="fas fa-stopwatch text-red-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="maxResponseTime">0 мин</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">пик за период</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Средняя тональность</h3>
+                            <i class="fas fa-smile text-teal-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="avgSentimentScore">0.00</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">общий настрой</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Активные клиенты</h3>
+                            <i class="fas fa-user-check text-pink-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="activeClients">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">за последний месяц</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ТОП-разделы -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- ТОП-5 негативных клиентов -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-frown text-red-500 mr-2"></i>
+                            ТОП-5 негативных клиентов
+                        </h3>
+                        <div id="topNegativeClients" class="space-y-3">
+                            <!-- Будет заполнено через JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- ТОП-5 позитивных клиентов -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-smile text-green-500 mr-2"></i>
+                            ТОП-5 позитивных клиентов
+                        </h3>
+                        <div id="topPositiveClients" class="space-y-3">
+                            <!-- Будет заполнено через JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- ТОП-5 по объему коммуникаций -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-comments text-blue-500 mr-2"></i>
+                            ТОП-5 по объему коммуникаций
+                        </h3>
+                        <div id="topActiveClients" class="space-y-3">
+                            <!-- Будет заполнено через JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- ТОП-5 с наибольшим временем ответа -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-stopwatch text-yellow-500 mr-2"></i>
+                            ТОП-5 с наибольшим временем ответа
+                        </h3>
+                        <div id="topSlowResponseClients" class="space-y-3">
+                            <!-- Будет заполнено через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Дополнительные графики -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Динамика тональности -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Динамика тональности</h3>
+                            <div class="flex space-x-1">
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="sentiment" data-period="day">День</button>
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="sentiment" data-period="week">Неделя</button>
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="sentiment" data-period="month">Месяц</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="sentimentTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Динамика времени ответа -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Динамика времени ответа</h3>
+                            <div class="flex space-x-1">
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="response-time" data-period="day">День</button>
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="response-time" data-period="week">Неделя</button>
+                                <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="response-time" data-period="month">Месяц</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="responseTimeTrendChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 

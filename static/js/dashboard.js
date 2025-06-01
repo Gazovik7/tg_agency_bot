@@ -207,7 +207,11 @@ class FilteredDashboard {
             'totalMessages': stats.total_messages || 0,
             'clientMessages': stats.client_messages || 0,
             'teamMessages': stats.team_messages || 0,
-            'totalCharacters': this.formatNumber(stats.total_symbols || 0)
+            'totalCharacters': this.formatNumber(stats.total_symbols || 0),
+            'medianResponseTime': this.formatTime(stats.median_response_time || 0),
+            'maxResponseTime': this.formatTime(stats.max_response_time || 0),
+            'avgSentimentScore': (stats.avg_sentiment_score || 0).toFixed(2),
+            'activeClients': stats.active_clients || 0
         };
 
         Object.keys(elements).forEach(id => {
