@@ -755,38 +755,38 @@ def filtered_dashboard_data():
                 *query_filters
             ).first()
             
-            team_messages = team_stats.count or 0
-            team_characters = team_stats.characters or 0
-            client_messages = client_stats.count or 0
-            client_characters = client_stats.characters or 0
+            chat_team_messages = team_stats.count or 0
+            chat_team_characters = team_stats.characters or 0
+            chat_client_messages = client_stats.count or 0
+            chat_client_characters = client_stats.characters or 0
             
-            total_messages = team_messages + client_messages
-            total_characters = team_characters + client_characters
+            chat_total_messages = chat_team_messages + chat_client_messages
+            chat_total_characters = chat_team_characters + chat_client_characters
             
-            if total_messages > 0:
-                team_message_ratio = (team_messages / total_messages) * 100
-                client_message_ratio = (client_messages / total_messages) * 100
+            if chat_total_messages > 0:
+                team_message_ratio = (chat_team_messages / chat_total_messages) * 100
+                client_message_ratio = (chat_client_messages / chat_total_messages) * 100
             else:
                 team_message_ratio = 0
                 client_message_ratio = 0
             
-            if total_characters > 0:
-                team_char_ratio = (team_characters / total_characters) * 100
-                client_char_ratio = (client_characters / total_characters) * 100
+            if chat_total_characters > 0:
+                team_char_ratio = (chat_team_characters / chat_total_characters) * 100
+                client_char_ratio = (chat_client_characters / chat_total_characters) * 100
             else:
                 team_char_ratio = 0
                 client_char_ratio = 0
             
-            if total_messages > 0:  # Only include chats with messages
+            if chat_total_messages > 0:  # Only include chats with messages
                 clients_data.append({
                     'chat_id': chat.id,
                     'name': chat.title,
-                    'team_messages': team_messages,
-                    'client_messages': client_messages,
-                    'team_characters': team_characters,
-                    'client_characters': client_characters,
-                    'total_messages': total_messages,
-                    'total_characters': total_characters,
+                    'team_messages': chat_team_messages,
+                    'client_messages': chat_client_messages,
+                    'team_characters': chat_team_characters,
+                    'client_characters': chat_client_characters,
+                    'total_messages': chat_total_messages,
+                    'total_characters': chat_total_characters,
                     'team_message_ratio': round(team_message_ratio, 1),
                     'client_message_ratio': round(client_message_ratio, 1),
                     'team_char_ratio': round(team_char_ratio, 1),
