@@ -893,6 +893,85 @@ body {
   color: var(--gray-400) !important;
 }
 
+/* Activity Tab Specific Styles */
+.activity-stat {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.activity-stat .stat-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.activity-stat .stat-value {
+  color: white;
+  font-weight: 700;
+}
+
+.activity-stat .stat-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.chart-container {
+  min-height: 400px;
+  padding: 1rem;
+}
+
+.chart-container[id*="Heatmap"] {
+  min-height: 300px;
+}
+
+.chart-container[id*="Histogram"] {
+  min-height: 350px;
+}
+
+.chart-container[id*="TimeSeries"] {
+  min-height: 450px;
+}
+
+/* Heatmap specific styling */
+.heatmap-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heatmap-legend {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+/* Activity grouping selector */
+#activityGrouping {
+  border: 2px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  font-weight: 500;
+}
+
+#activityGrouping:focus {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Time series chart styling */
+.time-series-chart {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Hour histogram styling */
+.hour-histogram {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .container {

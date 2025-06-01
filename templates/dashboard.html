@@ -267,12 +267,127 @@
 
                 <!-- Вкладка Активность -->
                 <div class="tab-pane" id="activity">
-                    <div class="card">
+                    <!-- Селектор группировки -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <label for="activityGrouping" class="form-label">Группировать по:</label>
+                                    <select class="form-select" id="activityGrouping">
+                                        <option value="day">День</option>
+                                        <option value="week">Неделя</option>
+                                        <option value="month">Месяц</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-9">
+                                    <p class="mb-0 text-muted">
+                                        <small>Выберите способ группировки данных для анализа активности переписок</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Блок ключевых цифр -->
+                    <div class="card mb-4">
                         <div class="card-header">
-                            <h3 class="card-title">Активность сообщений</h3>
+                            <h3 class="card-title">Ключевые показатели активности</h3>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container" id="activityChart"></div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="stat-card activity-stat">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-comments"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-title">Общее число сообщений</div>
+                                            <div class="stat-value" id="activityTotalMessages">0</div>
+                                            <div class="stat-description">За выбранный период</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card activity-stat">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-title">Среднее на период</div>
+                                            <div class="stat-value" id="activityAvgPerPeriod">0</div>
+                                            <div class="stat-description" id="activityAvgLabel">сообщений в день</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card activity-stat">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-trophy"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-title">Пиковый период</div>
+                                            <div class="stat-value" id="activityPeakPeriod">-</div>
+                                            <div class="stat-description" id="activityPeakCount">0 сообщений</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card activity-stat">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-title">Пиковый час</div>
+                                            <div class="stat-value" id="activityPeakHour">-</div>
+                                            <div class="stat-description" id="activityPeakHourCount">0 сообщений</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time-series график -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3 class="card-title">Сообщения по выбранной шкале</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="activityTimeSeriesChart"></div>
+                        </div>
+                    </div>
+
+                    <!-- Гистограмма по часам -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3 class="card-title">Распределение по часам</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="activityHourHistogram"></div>
+                        </div>
+                    </div>
+
+                    <!-- Тепловые карты -->
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Активность клиентов по дням и часам</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" id="activityClientHeatmap"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Активность команды по дням и часам</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" id="activityTeamHeatmap"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -29,6 +29,16 @@ class FilteredDashboard {
             });
         }
 
+        // Add activity grouping change listener
+        const activityGrouping = document.getElementById('activityGrouping');
+        if (activityGrouping) {
+            activityGrouping.addEventListener('change', () => {
+                if (document.querySelector('.tab-item[data-tab="activity"]').classList.contains('active')) {
+                    this.loadActivityData();
+                }
+            });
+        }
+
         // Tab change events - using your custom tab system
         const tabItems = document.querySelectorAll('.tab-item');
         tabItems.forEach(tab => {
@@ -529,7 +539,8 @@ class FilteredDashboard {
                 // Clients visualizations are already created
                 break;
             case 'activity':
-                // You can add activity chart here
+                // Load activity data when tab is activated
+                this.loadActivityData();
                 break;
             case 'sentiment':
                 // Load sentiment data when tab is activated
@@ -540,6 +551,250 @@ class FilteredDashboard {
                 this.loadCommunicationsData();
                 break;
         }
+    }
+
+    // Activity Tab Methods
+    async loadActivityData() {
+        try {
+            const filters = this.getFilters();
+            const grouping = document.getElementById('activityGrouping').value;
+            
+            const response = await fetch(`/api/activity-data?${new URLSearchParams({
+                ...filters,
+                grouping: grouping
+            })}`, {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.updateActivityTab(data, grouping);
+        } catch (error) {
+            console.error('Error loading activity data:', error);
+            this.showError('Ошибка загрузки данных активности');
+        }
+    }
+
+    updateActivityTab(data, grouping) {
+        // Update key metrics
+        this.updateActivityMetrics(data.metrics, grouping);
+        
+        // Create charts
+        this.createActivityTimeSeries(data.timeSeries, grouping);
+        this.createActivityHourHistogram(data.hourDistribution);
+        this.createActivityHeatmaps(data.heatmaps);
+    }
+
+    updateActivityMetrics(metrics, grouping) {
+        const periodLabels = {
+            'day': 'в день',
+            'week': 'в неделю', 
+            'month': 'в месяц'
+        };
+
+        document.getElementById('activityTotalMessages').textContent = metrics.totalMessages || 0;
+        document.getElementById('activityAvgPerPeriod').textContent = metrics.avgPerPeriod || 0;
+        document.getElementById('activityAvgLabel').textContent = `сообщений ${periodLabels[grouping]}`;
+        document.getElementById('activityPeakPeriod').textContent = metrics.peakPeriod || '-';
+        document.getElementById('activityPeakCount').textContent = `${metrics.peakCount || 0} сообщений`;
+        document.getElementById('activityPeakHour').textContent = metrics.peakHour !== undefined ? `${metrics.peakHour}:00` : '-';
+        document.getElementById('activityPeakHourCount').textContent = `${metrics.peakHourCount || 0} сообщений`;
+    }
+
+    createActivityTimeSeries(data, grouping) {
+        const traces = [
+            {
+                x: data.periods,
+                y: data.clientMessages,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Сообщения клиентов',
+                line: { color: '#4cc9f0', width: 3 },
+                marker: { size: 6 }
+            },
+            {
+                x: data.periods,
+                y: data.teamMessages,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Сообщения команды',
+                line: { color: '#4361ee', width: 3 },
+                marker: { size: 6 }
+            }
+        ];
+
+        const layout = {
+            title: {
+                text: `Динамика сообщений по ${grouping === 'day' ? 'дням' : grouping === 'week' ? 'неделям' : 'месяцам'}`,
+                font: { size: 16, family: 'Inter, sans-serif' }
+            },
+            xaxis: {
+                title: grouping === 'day' ? 'Дата' : grouping === 'week' ? 'Неделя' : 'Месяц',
+                gridcolor: '#e1e5e9'
+            },
+            yaxis: {
+                title: 'Количество сообщений',
+                gridcolor: '#e1e5e9'
+            },
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.2 },
+            margin: { t: 60, r: 40, b: 60, l: 60 },
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('activityTimeSeriesChart', traces, layout, config);
+    }
+
+    createActivityHourHistogram(data) {
+        const traces = [
+            {
+                x: Array.from({length: 24}, (_, i) => i),
+                y: data.clientMessages,
+                type: 'bar',
+                name: 'Клиенты',
+                marker: { color: '#4cc9f0' }
+            },
+            {
+                x: Array.from({length: 24}, (_, i) => i),
+                y: data.teamMessages,
+                type: 'bar',
+                name: 'Команда',
+                marker: { color: '#4361ee' }
+            }
+        ];
+
+        const layout = {
+            title: {
+                text: 'Распределение сообщений по часам дня',
+                font: { size: 16, family: 'Inter, sans-serif' }
+            },
+            xaxis: {
+                title: 'Час дня',
+                tickmode: 'array',
+                tickvals: Array.from({length: 24}, (_, i) => i),
+                ticktext: Array.from({length: 24}, (_, i) => `${i}:00`),
+                gridcolor: '#e1e5e9'
+            },
+            yaxis: {
+                title: 'Количество сообщений',
+                gridcolor: '#e1e5e9'
+            },
+            barmode: 'stack',
+            hovermode: 'x unified',
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.2 },
+            margin: { t: 60, r: 40, b: 60, l: 60 },
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('activityHourHistogram', traces, layout, config);
+    }
+
+    createActivityHeatmaps(data) {
+        const dayLabels = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+        const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+
+        // Client heatmap
+        const clientTrace = {
+            z: data.client,
+            type: 'heatmap',
+            colorscale: [
+                [0, '#f8f9fa'],
+                [0.25, '#cce7ff'],
+                [0.5, '#66c2ff'],
+                [0.75, '#1a8cff'],
+                [1, '#0066cc']
+            ],
+            showscale: true,
+            hoverongaps: false,
+            hovertemplate: '%{y}, %{x}<br>Сообщений: %{z}<extra></extra>'
+        };
+
+        const clientLayout = {
+            title: {
+                text: 'Активность клиентов',
+                font: { size: 14, family: 'Inter, sans-serif' }
+            },
+            xaxis: {
+                title: 'Час',
+                tickmode: 'array',
+                tickvals: Array.from({length: 24}, (_, i) => i),
+                ticktext: hourLabels,
+                side: 'bottom'
+            },
+            yaxis: {
+                title: 'День недели',
+                tickmode: 'array',
+                tickvals: [0, 1, 2, 3, 4, 5, 6],
+                ticktext: dayLabels,
+                autorange: 'reversed'
+            },
+            margin: { t: 40, r: 60, b: 60, l: 100 },
+            height: 300
+        };
+
+        // Team heatmap
+        const teamTrace = {
+            z: data.team,
+            type: 'heatmap',
+            colorscale: [
+                [0, '#fff7ed'],
+                [0.25, '#fed7aa'],
+                [0.5, '#fb923c'],
+                [0.75, '#ea580c'],
+                [1, '#c2410c']
+            ],
+            showscale: true,
+            hoverongaps: false,
+            hovertemplate: '%{y}, %{x}<br>Сообщений: %{z}<extra></extra>'
+        };
+
+        const teamLayout = {
+            title: {
+                text: 'Активность команды',
+                font: { size: 14, family: 'Inter, sans-serif' }
+            },
+            xaxis: {
+                title: 'Час',
+                tickmode: 'array',
+                tickvals: Array.from({length: 24}, (_, i) => i),
+                ticktext: hourLabels,
+                side: 'bottom'
+            },
+            yaxis: {
+                title: 'День недели',
+                tickmode: 'array',
+                tickvals: [0, 1, 2, 3, 4, 5, 6],
+                ticktext: dayLabels,
+                autorange: 'reversed'
+            },
+            margin: { t: 40, r: 60, b: 60, l: 100 },
+            height: 300
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('activityClientHeatmap', [clientTrace], clientLayout, config);
+        Plotly.newPlot('activityTeamHeatmap', [teamTrace], teamLayout, config);
     }
 
     // Helper functions for client visualization
