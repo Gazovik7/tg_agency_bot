@@ -750,8 +750,8 @@ def filtered_dashboard_data():
             'employees': employees_data,
             'clients': clients_data,
             'period': {
-                'start': start_time.strftime('%Y-%m-%d'),
-                'end': end_time.strftime('%Y-%m-%d')
+                'start': format_moscow_date(start_time),
+                'end': format_moscow_date(end_time)
             }
         })
         

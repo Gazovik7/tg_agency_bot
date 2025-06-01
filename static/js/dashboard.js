@@ -57,15 +57,17 @@ class FilteredDashboard {
     }
 
     setDefaultDates() {
-        const today = new Date();
-        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // Get current date in Moscow timezone (UTC+3)
+        const moscowTime = new Date(new Date().getTime() + (3 * 60 * 60 * 1000));
+        const weekAgo = new Date(moscowTime.getTime() - 7 * 24 * 60 * 60 * 1000);
         
         const startDate = document.getElementById('startDate');
         const endDate = document.getElementById('endDate');
         
         if (startDate && endDate) {
+            // Format dates as YYYY-MM-DD in Moscow timezone
             startDate.value = weekAgo.toISOString().split('T')[0];
-            endDate.value = today.toISOString().split('T')[0];
+            endDate.value = moscowTime.toISOString().split('T')[0];
             
             this.currentFilters.start_date = startDate.value;
             this.currentFilters.end_date = endDate.value;
