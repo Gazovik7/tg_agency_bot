@@ -830,6 +830,18 @@ def filtered_dashboard_data():
                 # Get detailed response time metrics for this chat
                 chat_response_metrics = analyzer.analyze_chat_response_times(db.session, chat.id, start_time, end_time)
                 
+                # Calculate average sentiment for this client chat
+                client_sentiment_query = db.session.query(
+                    func.avg(Message.sentiment_score).label('avg_sentiment')
+                ).filter(
+                    Message.chat_id == chat.id,
+                    Message.is_team_member == False,
+                    Message.sentiment_score.isnot(None),
+                    *query_filters
+                ).first()
+                
+                avg_sentiment = client_sentiment_query.avg_sentiment if client_sentiment_query.avg_sentiment else 0
+                
                 clients_data.append({
                     'chat_id': chat.id,
                     'name': chat.title,
@@ -853,7 +865,10 @@ def filtered_dashboard_data():
                     'responses_under_5min': chat_response_metrics.get('responses_under_5min', 0),
                     'responses_over_1hour': chat_response_metrics.get('responses_over_1hour', 0),
                     'percentage_under_5min': chat_response_metrics.get('percentage_under_5min', 0),
-                    'percentage_over_1hour': chat_response_metrics.get('percentage_over_1hour', 0)
+                    'percentage_over_1hour': chat_response_metrics.get('percentage_over_1hour', 0),
+                    
+                    # Sentiment metrics
+                    'avg_sentiment': round(avg_sentiment, 2)
                 })
         
         # Sort by communication intensity

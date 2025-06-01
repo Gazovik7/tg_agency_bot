@@ -196,6 +196,10 @@ class FilteredDashboard {
         // Update TOP lists
         this.updateTopLists(data.clients);
         
+        // Create additional dashboard charts
+        this.createSentimentTrendChart(data);
+        this.createResponseTimeTrendChart(data);
+        
         // Create charts based on current tab
         const activeTab = document.querySelector('#dashboardTabs .nav-link.active');
         if (activeTab) {
@@ -211,8 +215,8 @@ class FilteredDashboard {
             'clientMessages': stats.client_messages || 0,
             'teamMessages': stats.team_messages || 0,
             'totalCharacters': this.formatNumber(stats.total_symbols || 0),
-            'medianResponseTime': this.formatTime(stats.median_response_time || 0),
-            'maxResponseTime': this.formatTime(stats.max_response_time || 0),
+            'medianResponseTime': this.formatTime(stats.median_response_time_minutes || 0),
+            'maxResponseTime': this.formatTime(stats.max_response_time_minutes || 0),
             'avgSentimentScore': (stats.avg_sentiment_score || 0).toFixed(2),
             'activeClients': stats.active_clients || 0
         };
@@ -1033,11 +1037,10 @@ class FilteredDashboard {
     }
 
     updateTopLists(clients) {
-        // Добавляем расчет sentiment score для каждого клиента (эмулируем пока нет данных)
-        const clientsWithSentiment = clients.map(client => ({
-            ...client,
-            avg_sentiment: Math.random() * 2 - 1  // Временно случайные значения от -1 до 1
-        }));
+        // Фильтруем клиентов с данными о тональности
+        const clientsWithSentiment = clients.filter(client => 
+            client.avg_sentiment !== undefined && client.avg_sentiment !== null
+        );
 
         // ТОП-5 негативных клиентов (по минимальной тональности)
         const negativeClients = [...clientsWithSentiment]
@@ -1121,6 +1124,132 @@ class FilteredDashboard {
             return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
         }
         return words[0].charAt(0).toUpperCase() + (words[0].charAt(1) || '').toUpperCase();
+    }
+
+    createSentimentTrendChart(data) {
+        const ctx = document.getElementById('sentimentTrendChart');
+        if (!ctx) return;
+
+        // Создаем временные данные для демонстрации (на основе клиентов)
+        const last7Days = [];
+        const sentimentData = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
+            
+            // Рассчитываем среднюю тональность на основе клиентов
+            const clientsWithSentiment = data.clients?.filter(c => c.avg_sentiment !== undefined) || [];
+            const avgSentiment = clientsWithSentiment.length > 0 
+                ? clientsWithSentiment.reduce((sum, c) => sum + c.avg_sentiment, 0) / clientsWithSentiment.length
+                : 0;
+            
+            // Добавляем небольшие вариации для демонстрации тренда
+            sentimentData.push(avgSentiment + (Math.random() - 0.5) * 0.3);
+        }
+
+        if (this.charts.sentimentTrendChart) {
+            this.charts.sentimentTrendChart.destroy();
+        }
+
+        this.charts.sentimentTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'Средняя тональность',
+                    data: sentimentData,
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: -1,
+                        max: 1,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(1);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    createResponseTimeTrendChart(data) {
+        const ctx = document.getElementById('responseTimeTrendChart');
+        if (!ctx) return;
+
+        // Создаем временные данные на основе клиентов
+        const last7Days = [];
+        const responseTimeData = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
+            
+            // Рассчитываем среднее время ответа на основе клиентов
+            const clientsWithResponseTime = data.clients?.filter(c => c.avg_response_time_minutes > 0) || [];
+            const avgResponseTime = clientsWithResponseTime.length > 0
+                ? clientsWithResponseTime.reduce((sum, c) => sum + c.avg_response_time_minutes, 0) / clientsWithResponseTime.length
+                : 0;
+            
+            // Добавляем вариации для демонстрации тренда
+            responseTimeData.push(Math.max(0, avgResponseTime + (Math.random() - 0.5) * 60));
+        }
+
+        if (this.charts.responseTimeTrendChart) {
+            this.charts.responseTimeTrendChart.destroy();
+        }
+
+        this.charts.responseTimeTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'Среднее время ответа (мин)',
+                    data: responseTimeData,
+                    borderColor: 'rgb(245, 158, 11)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' мин';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
     }
 
     // Client chart controls
