@@ -9,7 +9,7 @@ from app import app, db
 from models import Chat, Message, KpiLive, TeamMember, SystemConfig
 from config_manager import ConfigManager
 from kpi_calculator import KpiCalculator
-from timezone_utils import utc_to_configured_timezone, format_configured_time, now_in_configured_timezone
+from timezone_utils import moscow_date_to_utc_range, utc_to_moscow, format_moscow_date, get_moscow_now, format_configured_time
 
 logger = logging.getLogger(__name__)
 
@@ -665,11 +665,19 @@ def filtered_dashboard_data():
         
         # Default time range (last 7 days if no dates provided)
         if start_date and end_date:
-            start_time = datetime.strptime(start_date, '%Y-%m-%d')
-            end_time = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            # Convert Moscow dates to UTC range
+            start_time, _ = moscow_date_to_utc_range(start_date)
+            _, end_time = moscow_date_to_utc_range(end_date)
         else:
-            end_time = datetime.utcnow()
-            start_time = end_time - timedelta(days=7)
+            # Default to last 7 days in Moscow time
+            moscow_now = get_moscow_now()
+            moscow_end = moscow_now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            moscow_start = (moscow_now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Convert to UTC
+            from timezone_utils import moscow_to_utc
+            end_time = moscow_to_utc(moscow_end).replace(tzinfo=None)
+            start_time = moscow_to_utc(moscow_start).replace(tzinfo=None)
         
         # Build query filters
         query_filters = [

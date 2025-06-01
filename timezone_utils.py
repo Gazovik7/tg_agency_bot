@@ -1,76 +1,64 @@
 """
-Timezone utilities for handling Moscow time conversion
+Utilities for timezone handling
 """
 import pytz
-from datetime import datetime
-from config_manager import ConfigManager
+from datetime import datetime, timedelta
 
-def get_moscow_timezone():
-    """Get Moscow timezone object"""
-    return pytz.timezone('Europe/Moscow')
-
-def get_configured_timezone():
-    """Get timezone from configuration"""
-    config = ConfigManager()
-    timezone_name = config.get_config().get('agency', {}).get('timezone', 'UTC')
-    return pytz.timezone(timezone_name)
+# Moscow timezone
+MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+UTC_TZ = pytz.utc
 
 def utc_to_moscow(utc_dt):
-    """Convert UTC datetime to Moscow time"""
+    """Convert UTC datetime to Moscow timezone"""
     if utc_dt is None:
         return None
     
-    try:
-        # If datetime is naive, assume it's UTC
-        if utc_dt.tzinfo is None:
-            utc_dt = pytz.utc.localize(utc_dt)
-        
-        moscow_tz = get_moscow_timezone()
-        return utc_dt.astimezone(moscow_tz)
-    except Exception:
-        return None
-
-def utc_to_configured_timezone(utc_dt):
-    """Convert UTC datetime to configured timezone"""
-    if utc_dt is None:
-        return None
+    if utc_dt.tzinfo is None:
+        utc_dt = UTC_TZ.localize(utc_dt)
     
-    try:
-        # If datetime is naive, assume it's UTC
-        if utc_dt.tzinfo is None:
-            utc_dt = pytz.utc.localize(utc_dt)
-        
-        configured_tz = get_configured_timezone()
-        return utc_dt.astimezone(configured_tz)
-    except Exception:
-        return None
+    return utc_dt.astimezone(MOSCOW_TZ)
 
-def now_in_moscow():
-    """Get current time in Moscow timezone"""
-    moscow_tz = get_moscow_timezone()
-    return datetime.now(moscow_tz)
-
-def now_in_configured_timezone():
-    """Get current time in configured timezone"""
-    configured_tz = get_configured_timezone()
-    return datetime.now(configured_tz)
-
-def format_moscow_time(dt, format_str='%Y-%m-%d %H:%M:%S'):
-    """Format datetime in Moscow timezone"""
-    if dt is None:
-        return None
-    
-    moscow_dt = utc_to_moscow(dt)
+def moscow_to_utc(moscow_dt):
+    """Convert Moscow timezone datetime to UTC"""
     if moscow_dt is None:
         return None
-    return moscow_dt.strftime(format_str)
+    
+    if moscow_dt.tzinfo is None:
+        moscow_dt = MOSCOW_TZ.localize(moscow_dt)
+    
+    return moscow_dt.astimezone(UTC_TZ)
 
-def format_configured_time(dt, format_str='%Y-%m-%d %H:%M:%S'):
-    """Format datetime in configured timezone"""
-    if dt is None:
+def moscow_date_to_utc_range(date_str):
+    """Convert Moscow date string to UTC datetime range for the full day"""
+    moscow_date = datetime.strptime(date_str, '%Y-%m-%d')
+    
+    # Start of day in Moscow
+    moscow_start = MOSCOW_TZ.localize(moscow_date.replace(hour=0, minute=0, second=0, microsecond=0))
+    # End of day in Moscow
+    moscow_end = MOSCOW_TZ.localize(moscow_date.replace(hour=23, minute=59, second=59, microsecond=999999))
+    
+    # Convert to UTC
+    utc_start = moscow_start.astimezone(UTC_TZ)
+    utc_end = moscow_end.astimezone(UTC_TZ)
+    
+    return utc_start, utc_end
+
+def get_moscow_now():
+    """Get current datetime in Moscow timezone"""
+    return datetime.now(MOSCOW_TZ)
+
+def format_moscow_datetime(utc_dt, format_str='%d.%m.%Y %H:%M'):
+    """Format UTC datetime as Moscow timezone string"""
+    if utc_dt is None:
         return None
     
-    configured_dt = utc_to_configured_timezone(dt)
-    if configured_dt is None:
-        return None
-    return configured_dt.strftime(format_str)
+    moscow_dt = utc_to_moscow(utc_dt)
+    return moscow_dt.strftime(format_str)
+
+def format_moscow_date(utc_dt):
+    """Format UTC datetime as Moscow date string"""
+    return format_moscow_datetime(utc_dt, '%Y-%m-%d')
+
+def format_configured_time(utc_dt):
+    """Format UTC datetime as Moscow timezone string (alias for format_moscow_datetime)"""
+    return format_moscow_datetime(utc_dt)
