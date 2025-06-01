@@ -531,6 +531,7 @@ class FilteredDashboard {
     }
 
     handleTabChange(tabId) {
+        console.log('Tab changed to:', tabId);
         // Handle specific tab activations
         switch (tabId) {
             case 'employees':
@@ -540,8 +541,12 @@ class FilteredDashboard {
                 // Clients visualizations are already created
                 break;
             case 'activity':
+                console.log('Activity tab activated, preparing to load data...');
                 // Load activity data when tab is activated
-                setTimeout(() => this.loadActivityData(), 100); // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    console.log('Activity data load timeout triggered');
+                    this.loadActivityData();
+                }, 200); // Increased delay to ensure DOM is ready
                 break;
             case 'sentiment':
                 // Load sentiment data when tab is activated
