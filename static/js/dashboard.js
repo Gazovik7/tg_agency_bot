@@ -635,6 +635,27 @@ class FilteredDashboard {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    formatResponseTime(minutes) {
+        if (!minutes || minutes === 0) {
+            return '<span class="text-muted">—</span>';
+        }
+        
+        let colorClass = 'text-success';
+        if (minutes > 60) {
+            colorClass = 'text-danger';
+        } else if (minutes > 15) {
+            colorClass = 'text-warning';
+        }
+        
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = Math.round(minutes % 60);
+            return `<span class="${colorClass}">${hours}ч ${remainingMinutes}м</span>`;
+        } else {
+            return `<span class="${colorClass}">${Math.round(minutes)}м</span>`;
+        }
+    }
 }
 
 // Global variables
