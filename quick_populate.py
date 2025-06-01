@@ -155,6 +155,23 @@ def create_test_data():
                         full_name = client["full_name"]
                         message_text = random.choice(CLIENT_MESSAGES)
                     
+                    # Генерируем данные о тональности для клиентских сообщений
+                    sentiment_score = None
+                    sentiment_label = None
+                    sentiment_confidence = None
+                    
+                    if not is_team_member:  # Только для клиентских сообщений
+                        # Генерируем реалистичные значения тональности
+                        sentiment_score = random.uniform(-0.8, 0.8)
+                        sentiment_confidence = random.uniform(0.6, 0.95)
+                        
+                        if sentiment_score > 0.2:
+                            sentiment_label = 'positive'
+                        elif sentiment_score < -0.2:
+                            sentiment_label = 'negative'
+                        else:
+                            sentiment_label = 'neutral'
+                    
                     # Добавляем сообщение в список для пакетной вставки
                     messages_data.append({
                         "message_id": random.randint(1000000, 9999999),
@@ -166,16 +183,22 @@ def create_test_data():
                         "message_type": 'text',
                         "is_team_member": is_team_member,
                         "timestamp": msg_timestamp,
-                        "created_at": datetime.utcnow()
+                        "created_at": datetime.utcnow(),
+                        "sentiment_score": sentiment_score,
+                        "sentiment_label": sentiment_label,
+                        "sentiment_confidence": sentiment_confidence,
+                        "processed_for_sentiment": sentiment_score is not None
                     })
         
         # Пакетная вставка сообщений
         print(f"Вставляем {len(messages_data)} сообщений...")
         connection.execute(text("""
             INSERT INTO messages (message_id, chat_id, user_id, username, full_name, text, 
-                                message_type, is_team_member, timestamp, created_at)
+                                message_type, is_team_member, timestamp, created_at,
+                                sentiment_score, sentiment_label, sentiment_confidence, processed_for_sentiment)
             VALUES (:message_id, :chat_id, :user_id, :username, :full_name, :text,
-                    :message_type, :is_team_member, :timestamp, :created_at)
+                    :message_type, :is_team_member, :timestamp, :created_at,
+                    :sentiment_score, :sentiment_label, :sentiment_confidence, :processed_for_sentiment)
         """), messages_data)
         
         trans.commit()
