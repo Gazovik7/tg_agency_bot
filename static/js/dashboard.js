@@ -1172,8 +1172,21 @@ class FilteredDashboard {
             this.loadSentimentTrendData().then(trendData => {
                 console.log('Creating sentiment chart with data:', trendData);
                 
-                if (this.charts.sentimentTrendChart) {
-                    this.charts.sentimentTrendChart.destroy();
+                // Принудительная очистка Canvas перед созданием нового графика
+                try {
+                    const context = ctx.getContext('2d');
+                    context.clearRect(0, 0, ctx.width, ctx.height);
+                } catch (e) {
+                    console.log('Canvas clear failed, trying canvas recreation');
+                    // Если очистка не помогла, пересоздаем Canvas
+                    const parent = ctx.parentNode;
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.id = 'sentimentTrendChart';
+                    newCanvas.style.width = '100%';
+                    newCanvas.style.height = '400px';
+                    parent.removeChild(ctx);
+                    parent.appendChild(newCanvas);
+                    ctx = newCanvas;
                 }
 
                 this.charts.sentimentTrendChart = new Chart(ctx, {
@@ -1310,8 +1323,21 @@ class FilteredDashboard {
             this.loadResponseTimeTrendData().then(trendData => {
                 console.log('Creating response time chart with data:', trendData);
                 
-                if (this.charts.responseTimeTrendChart) {
-                    this.charts.responseTimeTrendChart.destroy();
+                // Принудительная очистка Canvas перед созданием нового графика
+                try {
+                    const context = ctx.getContext('2d');
+                    context.clearRect(0, 0, ctx.width, ctx.height);
+                } catch (e) {
+                    console.log('Canvas clear failed, trying canvas recreation');
+                    // Если очистка не помогла, пересоздаем Canvas
+                    const parent = ctx.parentNode;
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.id = 'responseTimeTrendChart';
+                    newCanvas.style.width = '100%';
+                    newCanvas.style.height = '400px';
+                    parent.removeChild(ctx);
+                    parent.appendChild(newCanvas);
+                    ctx = newCanvas;
                 }
 
                 this.charts.responseTimeTrendChart = new Chart(ctx, {
