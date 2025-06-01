@@ -40,6 +40,13 @@ class FilteredDashboard {
             });
         }
 
+        // Chart period buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('chart-period-btn')) {
+                this.handleChartPeriodChange(e.target);
+            }
+        });
+
         // Tab change events - using new tab system
         const tabButtons = document.querySelectorAll('.tab-button');
         tabButtons.forEach(tab => {
@@ -1332,6 +1339,106 @@ class FilteredDashboard {
         } catch (error) {
             console.error('Error updating response time trend chart:', error);
         }
+    }
+
+    handleChartPeriodChange(button) {
+        const chartType = button.getAttribute('data-chart');
+        const period = button.getAttribute('data-period');
+        
+        // Update button states for this chart
+        const chartButtons = document.querySelectorAll(`[data-chart="${chartType}"]`);
+        chartButtons.forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        
+        button.classList.remove('bg-gray-100', 'text-gray-700');
+        button.classList.add('bg-blue-600', 'text-white');
+        
+        // Update chart data based on period
+        if (chartType === 'sentiment') {
+            this.updateSentimentChartPeriod(period);
+        } else if (chartType === 'response-time') {
+            this.updateResponseTimeChartPeriod(period);
+        }
+    }
+
+    updateSentimentChartPeriod(period) {
+        if (!this.charts.sentimentTrendChart) return;
+        
+        const labels = [];
+        const data = [];
+        const now = new Date();
+        
+        // Generate data based on period
+        if (period === 'day') {
+            // Last 24 hours
+            for (let i = 23; i >= 0; i--) {
+                const time = new Date(now);
+                time.setHours(time.getHours() - i);
+                labels.push(time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
+                data.push(Math.random() * 2 - 1); // Random sentiment for demo
+            }
+        } else if (period === 'week') {
+            // Last 7 days
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ru-RU', { weekday: 'short' }));
+                data.push(Math.random() * 2 - 1);
+            }
+        } else if (period === 'month') {
+            // Last 30 days
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+                data.push(Math.random() * 2 - 1);
+            }
+        }
+        
+        this.charts.sentimentTrendChart.data.labels = labels;
+        this.charts.sentimentTrendChart.data.datasets[0].data = data;
+        this.charts.sentimentTrendChart.update();
+    }
+
+    updateResponseTimeChartPeriod(period) {
+        if (!this.charts.responseTimeTrendChart) return;
+        
+        const labels = [];
+        const data = [];
+        const now = new Date();
+        
+        // Generate data based on period
+        if (period === 'day') {
+            // Last 24 hours
+            for (let i = 23; i >= 0; i--) {
+                const time = new Date(now);
+                time.setHours(time.getHours() - i);
+                labels.push(time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
+                data.push(Math.random() * 120 + 30); // Random response time 30-150 min
+            }
+        } else if (period === 'week') {
+            // Last 7 days
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ru-RU', { weekday: 'short' }));
+                data.push(Math.random() * 120 + 30);
+            }
+        } else if (period === 'month') {
+            // Last 30 days
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+                data.push(Math.random() * 120 + 30);
+            }
+        }
+        
+        this.charts.responseTimeTrendChart.data.labels = labels;
+        this.charts.responseTimeTrendChart.data.datasets[0].data = data;
+        this.charts.responseTimeTrendChart.update();
     }
 
     // Client chart controls
