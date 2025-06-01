@@ -532,10 +532,12 @@ class FilteredDashboard {
                 // You can add activity chart here
                 break;
             case 'sentiment':
-                // You can add sentiment chart here
+                // Load sentiment data when tab is activated
+                this.loadSentimentData();
                 break;
             case 'communications':
-                // You can add communications chart here
+                // Load communications data when tab is activated
+                this.loadCommunicationsData();
                 break;
         }
     }
@@ -656,6 +658,244 @@ class FilteredDashboard {
             return `<span class="${colorClass}">${Math.round(minutes)}м</span>`;
         }
     }
+
+    // Sentiment Analysis Functions
+    async loadSentimentData() {
+        console.log('Loading sentiment data with filters:', this.currentFilters);
+        
+        const params = new URLSearchParams();
+        Object.entries(this.currentFilters).forEach(([key, value]) => {
+            if (value) params.append(key, value);
+        });
+        
+        const url = `/api/sentiment-overview?${params.toString()}`;
+        console.log('Request URL:', url);
+        
+        const authHeaders = this.getAuthHeaders();
+        console.log('Auth headers:', authHeaders);
+        
+        try {
+            const response = await fetch(url, { headers: authHeaders });
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received sentiment data:', data);
+            
+            this.updateSentimentDisplay(data);
+        } catch (error) {
+            console.error('Error loading sentiment data:', error);
+            this.showError('Ошибка загрузки данных тональности');
+        }
+    }
+
+    updateSentimentDisplay(data) {
+        const summary = data.summary || {};
+        
+        // Update sentiment statistics
+        document.getElementById('positiveCount').textContent = summary.positive || 0;
+        document.getElementById('positivePercentage').textContent = `${summary.positive_percentage || 0}%`;
+        
+        document.getElementById('negativeCount').textContent = summary.negative || 0;
+        document.getElementById('negativePercentage').textContent = `${summary.negative_percentage || 0}%`;
+        
+        document.getElementById('neutralCount').textContent = summary.neutral || 0;
+        document.getElementById('neutralPercentage').textContent = `${summary.neutral_percentage || 0}%`;
+        
+        document.getElementById('totalAnalyzed').textContent = summary.total_messages || 0;
+        document.getElementById('avgScore').textContent = summary.avg_score || '0.00';
+        
+        // Create sentiment distribution chart
+        this.createSentimentDistributionChart(summary);
+        
+        // Create sentiment trend chart
+        this.createSentimentTrendChart(data.trend || {});
+    }
+
+    createSentimentDistributionChart(summary) {
+        const chartData = [{
+            values: [summary.positive || 0, summary.negative || 0, summary.neutral || 0],
+            labels: ['Позитивные', 'Негативные', 'Нейтральные'],
+            type: 'pie',
+            marker: {
+                colors: ['#28a745', '#dc3545', '#6c757d']
+            },
+            textinfo: 'label+percent',
+            textposition: 'outside'
+        }];
+
+        const layout = {
+            title: '',
+            showlegend: true,
+            margin: { t: 30, b: 30, l: 30, r: 30 },
+            height: 300
+        };
+
+        Plotly.newPlot('sentimentDistributionChart', chartData, layout, {responsive: true});
+    }
+
+    createSentimentTrendChart(trendData) {
+        const chartData = [
+            {
+                x: trendData.labels || [],
+                y: trendData.positive || [],
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Позитивные',
+                line: { color: '#28a745' }
+            },
+            {
+                x: trendData.labels || [],
+                y: trendData.negative || [],
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Негативные',
+                line: { color: '#dc3545' }
+            },
+            {
+                x: trendData.labels || [],
+                y: trendData.neutral || [],
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Нейтральные',
+                line: { color: '#6c757d' }
+            }
+        ];
+
+        const layout = {
+            title: '',
+            xaxis: { title: 'Дата' },
+            yaxis: { title: 'Количество сообщений' },
+            margin: { t: 30, b: 50, l: 50, r: 30 },
+            height: 300
+        };
+
+        Plotly.newPlot('sentimentTrendChart', chartData, layout, {responsive: true});
+    }
+
+    // Communications Functions
+    async loadCommunicationsData() {
+        console.log('Loading communications data');
+        
+        const limit = document.getElementById('communicationsLimit')?.value || 50;
+        const selectedChatId = this.selectedChatFilter || '';
+        
+        const params = new URLSearchParams({
+            limit: limit,
+            hours: 24
+        });
+        
+        if (selectedChatId) {
+            params.append('chat_id', selectedChatId);
+        }
+        
+        const url = `/api/recent-communications?${params.toString()}`;
+        const authHeaders = this.getAuthHeaders();
+        
+        try {
+            const response = await fetch(url, { headers: authHeaders });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received communications data:', data);
+            
+            this.updateCommunicationsDisplay(data);
+        } catch (error) {
+            console.error('Error loading communications data:', error);
+            this.showError('Ошибка загрузки коммуникаций');
+        }
+    }
+
+    updateCommunicationsDisplay(data) {
+        // Update chat tabs
+        this.updateChatTabs(data.chats || []);
+        
+        // Update messages list
+        this.updateMessagesList(data.messages || []);
+    }
+
+    updateChatTabs(chats) {
+        const chatTabsContainer = document.getElementById('chatTabs');
+        if (!chatTabsContainer) return;
+        
+        // Clear existing tabs except "Все чаты"
+        const allChatsTab = chatTabsContainer.querySelector('[data-chat-id=""]');
+        chatTabsContainer.innerHTML = '';
+        if (allChatsTab) {
+            chatTabsContainer.appendChild(allChatsTab);
+        }
+        
+        // Add chat tabs
+        chats.forEach(chat => {
+            const tabButton = document.createElement('button');
+            tabButton.className = 'chat-tab';
+            tabButton.setAttribute('data-chat-id', chat.chat_id);
+            tabButton.onclick = () => this.filterByChat(chat.chat_id);
+            tabButton.innerHTML = `
+                ${chat.title}
+                <small>(${chat.message_count})</small>
+            `;
+            chatTabsContainer.appendChild(tabButton);
+        });
+    }
+
+    updateMessagesList(messages) {
+        const messagesContainer = document.getElementById('messagesList');
+        if (!messagesContainer) return;
+        
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="no-messages">Сообщения не найдены</div>';
+            return;
+        }
+        
+        messagesContainer.innerHTML = messages.map(message => `
+            <div class="message-item ${message.sender_type}">
+                <div class="message-avatar ${message.sender_type}">
+                    ${message.sender_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender">${message.sender_name}</span>
+                        <div class="message-meta">
+                            <span class="message-time">${message.timestamp}</span>
+                            <span class="message-chat">${message.chat_title}</span>
+                        </div>
+                    </div>
+                    <div class="message-text">${message.text || 'Медиафайл'}</div>
+                    ${message.sentiment ? `
+                        <div class="message-sentiment ${message.sentiment.label}">
+                            <span>${message.sentiment.emoji}</span>
+                            <span>${message.sentiment.label}</span>
+                            <span>(${message.sentiment.score})</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    filterByChat(chatId) {
+        this.selectedChatFilter = chatId;
+        
+        // Update active tab
+        document.querySelectorAll('.chat-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        const activeTab = document.querySelector(`[data-chat-id="${chatId}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+        
+        // Reload communications data
+        this.loadCommunicationsData();
+    }
 }
 
 // Global variables
@@ -671,6 +911,18 @@ function toggleClientChartType(type) {
 function toggleClientView(viewType) {
     if (dashboardInstance) {
         dashboardInstance.toggleClientView(viewType);
+    }
+}
+
+function refreshCommunications() {
+    if (dashboardInstance) {
+        dashboardInstance.loadCommunicationsData();
+    }
+}
+
+function filterByChat(chatId) {
+    if (dashboardInstance) {
+        dashboardInstance.filterByChat(chatId);
     }
 }
 
