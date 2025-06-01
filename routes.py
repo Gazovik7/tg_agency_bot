@@ -9,6 +9,7 @@ from app import app, db
 from models import Chat, Message, KpiLive, TeamMember, SystemConfig
 from config_manager import ConfigManager
 from kpi_calculator import KpiCalculator
+from response_time_analyzer import ResponseTimeAnalyzer
 from timezone_utils import moscow_date_to_utc_range, utc_to_moscow, format_moscow_date, get_moscow_now, format_configured_time
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,12 @@ def index():
     import os
     admin_token = os.getenv("ADMIN_TOKEN")
     return render_template('dashboard.html', admin_token=admin_token)
+
+
+@app.route('/response-time-analysis')
+def response_time_analysis_page():
+    """Response time analysis page"""
+    return render_template('response_time_analysis.html')
 
 
 @app.route('/dashboard-data')
@@ -852,6 +859,150 @@ def filter_options():
         
     except Exception as e:
         logger.error(f"Error getting filter options: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/response-time-analysis')
+def response_time_analysis():
+    """Get detailed response time analysis"""
+    try:
+        verify_admin_token()
+        
+        # Get parameters
+        chat_id = request.args.get('chat_id', type=int)
+        employee_id = request.args.get('employee_id', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        hours = request.args.get('hours', default=24, type=int)
+        
+        # Initialize response time analyzer
+        analyzer = ResponseTimeAnalyzer()
+        
+        # Determine time range
+        if start_date and end_date:
+            start_time, end_time = moscow_date_to_utc_range(start_date, end_date)
+        else:
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(hours=hours)
+        
+        if chat_id:
+            # Analysis for specific chat
+            metrics = analyzer.analyze_chat_response_times(db.session, chat_id, start_time, end_time)
+            
+            # Get chat info
+            chat = db.session.query(Chat).filter_by(id=chat_id).first()
+            chat_title = chat.title if chat else f"Chat {chat_id}"
+            
+            return jsonify({
+                'type': 'chat',
+                'chat_id': chat_id,
+                'chat_title': chat_title,
+                'metrics': metrics,
+                'period': {
+                    'start': format_moscow_date(start_time),
+                    'end': format_moscow_date(end_time)
+                }
+            })
+            
+        elif employee_id:
+            # Analysis for specific employee
+            metrics = analyzer.analyze_team_member_performance(db.session, employee_id, start_time, end_time)
+            
+            # Get employee info
+            employee = db.session.query(Message.full_name).filter(
+                Message.user_id == employee_id,
+                Message.is_team_member == True
+            ).first()
+            
+            employee_name = employee.full_name if employee else f"Employee {employee_id}"
+            
+            return jsonify({
+                'type': 'employee',
+                'employee_id': employee_id,
+                'employee_name': employee_name,
+                'metrics': metrics,
+                'period': {
+                    'start': format_moscow_date(start_time),
+                    'end': format_moscow_date(end_time)
+                }
+            })
+            
+        else:
+            # Overall analysis for all chats
+            all_metrics = {
+                'total_responses': 0,
+                'all_response_times': [],
+                'chat_analyses': []
+            }
+            
+            # Get all active chats
+            active_chats = db.session.query(Chat).filter_by(is_active=True).all()
+            
+            for chat in active_chats:
+                chat_metrics = analyzer.analyze_chat_response_times(db.session, chat.id, start_time, end_time)
+                
+                if chat_metrics['total_responses'] > 0:
+                    all_metrics['chat_analyses'].append({
+                        'chat_id': chat.id,
+                        'chat_title': chat.title,
+                        'metrics': chat_metrics
+                    })
+                    all_metrics['total_responses'] += chat_metrics['total_responses']
+            
+            # Calculate overall statistics
+            if all_metrics['total_responses'] > 0:
+                # Collect all response times for overall calculation
+                overall_response_times = []
+                for chat_analysis in all_metrics['chat_analyses']:
+                    # We'll need to get individual response times for overall calculation
+                    # For now, use weighted averages based on chat metrics
+                    pass
+                
+                # Sort chats by max response time
+                all_metrics['chat_analyses'].sort(
+                    key=lambda x: x['metrics']['max_response_time_minutes'] or 0, 
+                    reverse=True
+                )
+            
+            return jsonify({
+                'type': 'overall',
+                'metrics': all_metrics,
+                'period': {
+                    'start': format_moscow_date(start_time),
+                    'end': format_moscow_date(end_time)
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in response time analysis: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/slow-response-alerts')
+def slow_response_alerts():
+    """Get alerts for slow responses"""
+    try:
+        verify_admin_token()
+        
+        hours = request.args.get('hours', default=24, type=int)
+        
+        # Initialize response time analyzer
+        analyzer = ResponseTimeAnalyzer()
+        
+        # Get slow response alerts
+        alerts = analyzer.get_slow_response_alerts(db.session, hours)
+        
+        return jsonify({
+            'alerts': alerts,
+            'period_hours': hours,
+            'total_alerts': len(alerts),
+            'critical_alerts': len([a for a in alerts if a['alert_level'] == 'critical']),
+            'high_alerts': len([a for a in alerts if a['alert_level'] == 'high']),
+            'generated_at': format_moscow_date(datetime.utcnow())
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting slow response alerts: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 

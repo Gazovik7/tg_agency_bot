@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ времени ответа - Мониторинг</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/plotly.js@2.18.0/dist/plotly.min.css" rel="stylesheet">
+    <style>
+        .metric-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .alert-critical { border-left: 5px solid #dc3545; }
+        .alert-high { border-left: 5px solid #fd7e14; }
+        .alert-medium { border-left: 5px solid #ffc107; }
+        .alert-low { border-left: 5px solid #198754; }
+        .response-time-good { color: #198754; font-weight: bold; }
+        .response-time-warning { color: #ffc107; font-weight: bold; }
+        .response-time-danger { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">📊 Анализ времени ответа</h1>
+                
+                <!-- Фильтры -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Фильтры анализа</h5>
+                        <form id="filterForm" class="row">
+                            <div class="col-md-3">
+                                <label for="chatSelect" class="form-label">Чат</label>
+                                <select class="form-select" id="chatSelect">
+                                    <option value="">Все чаты</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="employeeSelect" class="form-label">Сотрудник</label>
+                                <select class="form-select" id="employeeSelect">
+                                    <option value="">Все сотрудники</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="startDate" class="form-label">Начало</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="endDate" class="form-label">Конец</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block w-100">Анализировать</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Алерты медленных ответов -->
+                <div class="card mb-4" id="alertsCard" style="display: none;">
+                    <div class="card-body">
+                        <h5 class="card-title">🚨 Алерты медленных ответов</h5>
+                        <div id="alertsContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Основные метрики -->
+                <div class="row" id="metricsContainer">
+                    <!-- Метрики будут загружены динамически -->
+                </div>
+
+                <!-- График распределения времени ответа -->
+                <div class="card mb-4" id="chartCard" style="display: none;">
+                    <div class="card-body">
+                        <h5 class="card-title">📈 Распределение времени ответа</h5>
+                        <div id="responseTimeChart" style="height: 400px;"></div>
+                    </div>
+                </div>
+
+                <!-- Детальная таблица -->
+                <div class="card" id="detailsCard" style="display: none;">
+                    <div class="card-body">
+                        <h5 class="card-title">📋 Детальная статистика</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="detailsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Чат/Сотрудник</th>
+                                        <th>Всего ответов</th>
+                                        <th>Среднее время</th>
+                                        <th>Медианное время</th>
+                                        <th>Максимальное время</th>
+                                        <th>Быстрые ответы (&lt;5мин)</th>
+                                        <th>Медленные ответы (&gt;1час)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js@2.18.0/dist/plotly.min.js"></script>
+    <script>
+        const API_BASE = '';
+        const AUTH_TOKEN = '771G@zoviK';
+
+        // Загрузка фильтров
+        async function loadFilters() {
+            try {
+                const response = await fetch('/api/filter-options', {
+                    headers: { 'X-Admin-Token': AUTH_TOKEN }
+                });
+                const data = await response.json();
+
+                // Заполняем чаты
+                const chatSelect = document.getElementById('chatSelect');
+                data.chats.forEach(chat => {
+                    const option = document.createElement('option');
+                    option.value = chat.id;
+                    option.textContent = chat.title;
+                    chatSelect.appendChild(option);
+                });
+
+                // Заполняем сотрудников
+                const employeeSelect = document.getElementById('employeeSelect');
+                data.employees.forEach(employee => {
+                    const option = document.createElement('option');
+                    option.value = employee.id;
+                    option.textContent = employee.name;
+                    employeeSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Ошибка загрузки фильтров:', error);
+            }
+        }
+
+        // Загрузка алертов
+        async function loadAlerts() {
+            try {
+                const response = await fetch('/api/slow-response-alerts?hours=24', {
+                    headers: { 'X-Admin-Token': AUTH_TOKEN }
+                });
+                const data = await response.json();
+
+                if (data.alerts && data.alerts.length > 0) {
+                    displayAlerts(data.alerts);
+                    document.getElementById('alertsCard').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки алертов:', error);
+            }
+        }
+
+        // Отображение алертов
+        function displayAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '';
+
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${alert.alert_level} alert-${alert.alert_level}`;
+                alertDiv.innerHTML = `
+                    <strong>${alert.chat_title}</strong><br>
+                    Максимальное время ответа: <span class="response-time-danger">${alert.max_response_time_minutes} мин</span><br>
+                    Медианное время ответа: <span class="response-time-warning">${alert.median_response_time_minutes} мин</span><br>
+                    Медленных ответов (>1ч): ${alert.responses_over_1hour} из ${alert.total_responses}
+                `;
+                container.appendChild(alertDiv);
+            });
+        }
+
+        // Анализ времени ответа
+        async function analyzeResponseTime() {
+            const chatId = document.getElementById('chatSelect').value;
+            const employeeId = document.getElementById('employeeSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let url = '/api/response-time-analysis?';
+            const params = new URLSearchParams();
+            
+            if (chatId) params.append('chat_id', chatId);
+            if (employeeId) params.append('employee_id', employeeId);
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+
+            try {
+                const response = await fetch(url + params.toString(), {
+                    headers: { 'X-Admin-Token': AUTH_TOKEN }
+                });
+                const data = await response.json();
+
+                displayMetrics(data);
+                
+                if (data.type === 'overall') {
+                    displayDetailedTable(data.metrics.chat_analyses);
+                }
+
+            } catch (error) {
+                console.error('Ошибка анализа времени ответа:', error);
+                alert('Ошибка при загрузке данных');
+            }
+        }
+
+        // Отображение метрик
+        function displayMetrics(data) {
+            const container = document.getElementById('metricsContainer');
+            container.innerHTML = '';
+
+            let metrics;
+            if (data.type === 'overall') {
+                // Для общего анализа показываем суммарные данные
+                const totalResponses = data.metrics.total_responses;
+                container.innerHTML = `
+                    <div class="col-12">
+                        <h5>Общая статистика по всем чатам</h5>
+                        <p>Всего ответов: ${totalResponses}</p>
+                        <p>Активных чатов: ${data.metrics.chat_analyses.length}</p>
+                    </div>
+                `;
+                return;
+            } else {
+                metrics = data.metrics;
+            }
+
+            if (!metrics || metrics.total_responses === 0) {
+                container.innerHTML = '<div class="col-12"><div class="alert alert-info">Нет данных для анализа в выбранном периоде</div></div>';
+                return;
+            }
+
+            // Основные метрики времени ответа
+            container.innerHTML = `
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Среднее время ответа</h6>
+                            <h3 class="${getResponseTimeClass(metrics.avg_response_time_minutes)}">${metrics.avg_response_time_minutes || 0} мин</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Медианное время ответа</h6>
+                            <h3 class="${getResponseTimeClass(metrics.median_response_time_minutes)}">${metrics.median_response_time_minutes || 0} мин</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Максимальное время ответа</h6>
+                            <h3 class="${getResponseTimeClass(metrics.max_response_time_minutes)}">${metrics.max_response_time_minutes || 0} мин</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Всего ответов</h6>
+                            <h3 class="text-primary">${metrics.total_responses}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card metric-card">
+                        <div class="card-body">
+                            <h6 class="card-title">Распределение ответов</h6>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="response-time-good">До 5 минут</div>
+                                    <strong>${metrics.responses_under_5min} (${metrics.percentage_under_5min}%)</strong>
+                                </div>
+                                <div class="col-6">
+                                    <div class="response-time-warning">До 15 минут</div>
+                                    <strong>${metrics.responses_under_15min} (${metrics.percentage_under_15min}%)</strong>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="response-time-warning">До 1 часа</div>
+                                    <strong>${metrics.responses_under_1hour} (${metrics.percentage_under_1hour}%)</strong>
+                                </div>
+                                <div class="col-6">
+                                    <div class="response-time-danger">Больше 1 часа</div>
+                                    <strong>${metrics.responses_over_1hour} (${metrics.percentage_over_1hour}%)</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card metric-card">
+                        <div class="card-body">
+                            <h6 class="card-title">Перцентили времени ответа</h6>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div>75-й перцентиль</div>
+                                    <strong>${metrics.p75_response_time_minutes || 0} мин</strong>
+                                </div>
+                                <div class="col-4">
+                                    <div>90-й перцентиль</div>
+                                    <strong>${metrics.p90_response_time_minutes || 0} мин</strong>
+                                </div>
+                                <div class="col-4">
+                                    <div>95-й перцентиль</div>
+                                    <strong>${metrics.p95_response_time_minutes || 0} мин</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Показываем график
+            createResponseTimeChart(metrics);
+        }
+
+        // Определение класса CSS для времени ответа
+        function getResponseTimeClass(minutes) {
+            if (!minutes) return 'text-muted';
+            if (minutes <= 5) return 'response-time-good';
+            if (minutes <= 60) return 'response-time-warning';
+            return 'response-time-danger';
+        }
+
+        // Создание графика распределения времени ответа
+        function createResponseTimeChart(metrics) {
+            const chartData = [{
+                x: ['До 5 мин', 'До 15 мин', 'До 1 часа', 'Больше 1 часа'],
+                y: [metrics.responses_under_5min, metrics.responses_under_15min, metrics.responses_under_1hour, metrics.responses_over_1hour],
+                type: 'bar',
+                marker: {
+                    color: ['#198754', '#ffc107', '#fd7e14', '#dc3545']
+                }
+            }];
+
+            const layout = {
+                title: 'Распределение времени ответа',
+                xaxis: { title: 'Время ответа' },
+                yaxis: { title: 'Количество ответов' }
+            };
+
+            Plotly.newPlot('responseTimeChart', chartData, layout);
+            document.getElementById('chartCard').style.display = 'block';
+        }
+
+        // Отображение детальной таблицы
+        function displayDetailedTable(chatAnalyses) {
+            const tbody = document.getElementById('detailsTableBody');
+            tbody.innerHTML = '';
+
+            chatAnalyses.forEach(analysis => {
+                const row = document.createElement('tr');
+                const metrics = analysis.metrics;
+                
+                row.innerHTML = `
+                    <td>${analysis.chat_title}</td>
+                    <td>${metrics.total_responses}</td>
+                    <td class="${getResponseTimeClass(metrics.avg_response_time_minutes)}">${metrics.avg_response_time_minutes || 0} мин</td>
+                    <td class="${getResponseTimeClass(metrics.median_response_time_minutes)}">${metrics.median_response_time_minutes || 0} мин</td>
+                    <td class="${getResponseTimeClass(metrics.max_response_time_minutes)}">${metrics.max_response_time_minutes || 0} мин</td>
+                    <td><span class="badge bg-success">${metrics.responses_under_5min} (${metrics.percentage_under_5min}%)</span></td>
+                    <td><span class="badge bg-danger">${metrics.responses_over_1hour} (${metrics.percentage_over_1hour}%)</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('detailsCard').style.display = 'block';
+        }
+
+        // Обработчик формы
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            analyzeResponseTime();
+        });
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFilters();
+            loadAlerts();
+            
+            // Устанавливаем даты по умолчанию (последние 7 дней)
+            const endDate = new Date();
+            const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            
+            // Загружаем данные по умолчанию
+            analyzeResponseTime();
+        });
+    </script>
+</body>
+</html>
