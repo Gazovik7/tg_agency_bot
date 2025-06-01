@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Аналитика Коммуникаций - Дашборд</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            min-height: 300px;
+            max-height: 300px;
+        }
+        .mini-chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+            min-height: 200px;
+            max-height: 200px;
+        }
+        .stats-card {
+            transition: transform 0.2s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+        .top-list-item {
+            transition: background-color 0.2s ease;
+        }
+        .top-list-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .trend-up { color: #10b981; }
+        .trend-down { color: #ef4444; }
+        .trend-neutral { color: #6b7280; }
+        
+        .sentiment-negative { color: #ef4444; background-color: rgba(239, 68, 68, 0.1); }
+        .sentiment-neutral { color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); }
+        .sentiment-positive { color: #10b981; background-color: rgba(16, 185, 129, 0.1); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { 
+            background-color: #3b82f6; 
+            color: white; 
+        }
+        
+        .toggle-button {
+            background: #e5e7eb;
+            border-radius: 20px;
+            padding: 4px;
+            display: inline-flex;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-option {
+            padding: 6px 12px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .toggle-option.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+                min-height: 250px;
+                max-height: 250px;
+            }
+            .mini-chart-container {
+                height: 180px;
+                min-height: 180px;
+                max-height: 180px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-chart-bar text-blue-600 text-2xl"></i>
+                        <h1 class="text-2xl font-bold text-gray-900">Аналитика Коммуникаций</h1>
+                    </div>
+                    <span class="text-sm text-gray-500">Тестовое Агентство</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-users mr-1"></i>
+                        40 активных клиентов
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Фильтры и период -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Период отчета</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="period-btn px-3 py-1 text-sm rounded-lg bg-blue-600 text-white" data-period="today">Сегодня</button>
+                        <button class="period-btn px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="yesterday">Вчера</button>
+                        <button class="period-btn px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="7days">7 дней</button>
+                        <button class="period-btn px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="30days">30 дней</button>
+                        <button class="period-btn px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="90days">90 дней</button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <input type="date" id="startDate" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" value="2025-01-01">
+                    <span class="text-gray-500">—</span>
+                    <input type="date" id="endDate" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" value="2025-01-31">
+                </div>
+            </div>
+        </div>
+
+        <!-- Общая статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Всего сообщений</p>
+                        <p class="text-2xl font-bold text-gray-900">2,847</p>
+                        <p class="text-sm trend-up">↗️ +15.3% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-lg">
+                        <i class="fas fa-comments text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Сообщений от клиентов</p>
+                        <p class="text-2xl font-bold text-gray-900">1,253</p>
+                        <p class="text-sm trend-up">↗️ +8.7% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <i class="fas fa-user text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Сообщений от команды</p>
+                        <p class="text-2xl font-bold text-gray-900">1,594</p>
+                        <p class="text-sm trend-up">↗️ +21.2% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <i class="fas fa-users text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Медианное время ответа</p>
+                        <p class="text-2xl font-bold text-gray-900">23 мин</p>
+                        <p class="text-sm trend-down">↘️ -12.5% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-yellow-100 rounded-lg">
+                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Максимальное время ответа</p>
+                        <p class="text-2xl font-bold text-gray-900">4ч 15мин</p>
+                        <p class="text-sm trend-up">↗️ +23.8% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-red-100 rounded-lg">
+                        <i class="fas fa-stopwatch text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Всего символов</p>
+                        <p class="text-2xl font-bold text-gray-900">147K</p>
+                        <p class="text-sm trend-up">↗️ +18.9% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-indigo-100 rounded-lg">
+                        <i class="fas fa-font text-indigo-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Средняя тональность</p>
+                        <p class="text-2xl font-bold text-gray-900">0.73</p>
+                        <p class="text-sm trend-neutral">➡️ 0% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <i class="fas fa-smile text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Активных клиентов</p>
+                        <p class="text-2xl font-bold text-gray-900">32</p>
+                        <p class="text-sm trend-up">↗️ +6.7% к прошлому периоду</p>
+                    </div>
+                    <div class="p-3 bg-teal-100 rounded-lg">
+                        <i class="fas fa-user-check text-teal-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основные графики -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Динамика сообщений -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Динамика сообщений</h3>
+                    <div class="flex items-center space-x-4">
+                        <div class="toggle-button" id="messagesToggle">
+                            <div class="toggle-option active" data-mode="messages">Сообщения</div>
+                            <div class="toggle-option" data-mode="characters">Символы</div>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="messages" data-period="day">День</button>
+                            <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="messages" data-period="week">Неделя</button>
+                            <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="messages" data-period="month">Месяц</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="messagesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Динамика тональности -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Динамика тональности</h3>
+                    <div class="flex space-x-1">
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="sentiment" data-period="day">День</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="sentiment" data-period="week">Неделя</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="sentiment" data-period="month">Месяц</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Время ответа медианное -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Медианное время ответа</h3>
+                    <div class="flex space-x-1">
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="median-response" data-period="day">День</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="median-response" data-period="week">Неделя</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="median-response" data-period="month">Месяц</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="medianResponseChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Время ответа максимальное -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Максимальное время ответа</h3>
+                    <div class="flex space-x-1">
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-blue-600 text-white" data-chart="max-response" data-period="day">День</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="max-response" data-period="week">Неделя</button>
+                        <button class="chart-period-btn px-2 py-1 text-xs rounded bg-gray-100 text-gray-700" data-chart="max-response" data-period="month">Месяц</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="maxResponseChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ТОП-разделы -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- ТОП-5 негативных клиентов -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-frown text-red-500 mr-2"></i>
+                    ТОП-5 негативных клиентов
+                </h3>
+                <div class="space-y-3">
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">АС</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Анна Степанова</p>
+                                <p class="text-sm text-gray-500">Маркетплейсы</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-negative px-3 py-1 rounded-full text-sm font-semibold">
+                            0.12
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ВК</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Владимир Коротков</p>
+                                <p class="text-sm text-gray-500">SEO</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-negative px-3 py-1 rounded-full text-sm font-semibold">
+                            0.23
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">МР</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Мария Романова</p>
+                                <p class="text-sm text-gray-500">Контекст</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-negative px-3 py-1 rounded-full text-sm font-semibold">
+                            0.28
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">АП</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Алексей Попов</p>
+                                <p class="text-sm text-gray-500">SMM</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-neutral px-3 py-1 rounded-full text-sm font-semibold">
+                            0.35
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ЕЛ</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Елена Лебедева</p>
+                                <p class="text-sm text-gray-500">Веб-дизайн</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-neutral px-3 py-1 rounded-full text-sm font-semibold">
+                            0.38
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ТОП-5 позитивных клиентов -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-smile text-green-500 mr-2"></i>
+                    ТОП-5 позитивных клиентов
+                </h3>
+                <div class="space-y-3">
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ДС</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Дмитрий Смирнов</p>
+                                <p class="text-sm text-gray-500">Комплекс</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">
+                            0.94
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ОИ</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Ольга Иванова</p>
+                                <p class="text-sm text-gray-500">SEO</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">
+                            0.91
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">СП</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Сергей Петров</p>
+                                <p class="text-sm text-gray-500">Маркетплейсы</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">
+                            0.88
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ТК</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Татьяна Козлова</p>
+                                <p class="text-sm text-gray-500">Контекст</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">
+                            0.85
+                        </div>
+                    </div>
+
+                    <div class="top-list-item flex items-center justify-between p-3 rounded-lg border">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-semibold">ИР</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Игорь Романов</p>
+                                <p class="text-sm text-gray-500">SMM</p>
+                            </div>
+                        </div>
+                        <div class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">
+                            0.83
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Дополнительные подборки -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <!-- ТОП по объёму коммуникаций -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                    ТОП по объёму коммуникаций
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-blue-500">
+                        <div>
+                            <p class="font-medium text-sm">Дмитрий Смирнов</p>
+                            <p class="text-xs text-gray-500">247 сообщений</p>
+                        </div>
+                        <span class="trend-up text-sm">↗️ +15%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-blue-400">
+                        <div>
+                            <p class="font-medium text-sm">Ольга Иванова</p>
+                            <p class="text-xs text-gray-500">189 сообщений</p>
+                        </div>
+                        <span class="trend-up text-sm">↗️ +8%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-blue-300">
+                        <div>
+                            <p class="font-medium text-sm">Сергей Петров</p>
+                            <p class="text-xs text-gray-500">156 сообщений</p>
+                        </div>
+                        <span class="trend-neutral text-sm">➡️ 0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Долго отвечаем -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-hourglass-half text-red-500 mr-2"></i>
+                    Долго отвечаем
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-red-500">
+                        <div>
+                            <p class="font-medium text-sm">Анна Степанова</p>
+                            <p class="text-xs text-gray-500">4ч 15мин</p>
+                        </div>
+                        <span class="trend-up text-sm">↗️ +2ч</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-red-400">
+                        <div>
+                            <p class="font-medium text-sm">Владимир Коротков</p>
+                            <p class="text-xs text-gray-500">3ч 42мин</p>
+                        </div>
+                        <span class="trend-up text-sm">↗️ +1ч</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-red-300">
+                        <div>
+                            <p class="font-medium text-sm">Мария Романова</p>
+                            <p class="text-xs text-gray-500">2ч 58мин</p>
+                        </div>
+                        <span class="trend-down text-sm">↘️ -30мин</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Новые клиенты -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-user-plus text-green-500 mr-2"></i>
+                    Новые клиенты
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-green-500">
+                        <div>
+                            <p class="font-medium text-sm">Артем Новиков</p>
+                            <p class="text-xs text-gray-500">3 дня назад</p>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Новый</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-green-400">
+                        <div>
+                            <p class="font-medium text-sm">Елена Волкова</p>
+                            <p class="text-xs text-gray-500">5 дней назад</p>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Новый</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-green-300">
+                        <div>
+                            <p class="font-medium text-sm">Павел Морозов</p>
+                            <p class="text-xs text-gray-500">1 неделя назад</p>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Новый</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Рискованные клиенты -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                    Рискованные клиенты
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-yellow-500">
+                        <div>
+                            <p class="font-medium text-sm">Анна Степанова</p>
+                            <p class="text-xs text-gray-500">0.12 → 0.08</p>
+                        </div>
+                        <span class="trend-down text-sm">↘️ -33%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-yellow-400">
+                        <div>
+                            <p class="font-medium text-sm">Владимир Коротков</p>
+                            <p class="text-xs text-gray-500">0.45 → 0.23</p>
+                        </div>
+                        <span class="trend-down text-sm">↘️ -49%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded border-l-4 border-yellow-300">
+                        <div>
+                            <p class="font-medium text-sm">Алексей Попов</p>
+                            <p class="text-xs text-gray-500">0.58 → 0.35</p>
+                        </div>
+                        <span class="trend-down text-sm">↘️ -40%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Табы для детальной информации -->
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6">
+                    <button class="tab-button py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 active" data-tab="employees">
+                        Сотрудники
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="clients">
+                        Клиенты
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="activity">
+                        Активность
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="sentiment">
+                        Тональность
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="communications">
+                        Коммуникации
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Контент табов -->
+            <div class="p-6">
+                <!-- Сотрудники -->
+                <div id="employees" class="tab-content active">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-semibold mb-4">Активность сотрудников</h3>
+                            <div class="space-y-4">
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-sm font-semibold text-blue-600">ИС</span>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-medium">Иван Смирнов</h4>
+                                                <p class="text-sm text-gray-500">@ivan_smirnov</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-semibold">487</p>
+                                            <p class="text-sm text-gray-500">сообщений</p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-500">Клиентов</p>
+                                            <p class="font-semibold">12</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Ср. время ответа</p>
+                                            <p class="font-semibold">18 мин</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Эффективность</p>
+                                            <p class="font-semibold text-green-600">94%</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                                <span class="text-sm font-semibold text-green-600">АК</span>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-medium">Анна Козлова</h4>
+                                                <p class="text-sm text-gray-500">@anna_kozlova</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-semibold">423</p>
+                                            <p class="text-sm text-gray-500">сообщений</p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-500">Клиентов</p>
+                                            <p class="font-semibold">10</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Ср. время ответа</p>
+                                            <p class="font-semibold">15 мин</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Эффективность</p>
+                                            <p class="font-semibold text-green-600">97%</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                                <span class="text-sm font-semibold text-purple-600">МП</span>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-medium">Михаил Петров</h4>
+                                                <p class="text-sm text-gray-500">@mikhail_petrov</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-semibold">356</p>
+                                            <p class="text-sm text-gray-500">сообщений</p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-500">Клиентов</p>
+                                            <p class="font-semibold">8</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Ср. время ответа</p>
+                                            <p class="font-semibold">22 мин</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Эффективность</p>
+                                            <p class="font-semibold text-yellow-600">89%</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Распределение нагрузки</h3>
+                            <div class="mini-chart-container">
+                                <canvas id="workloadChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Клиенты -->
+                <div id="clients" class="tab-content">
+                    <div class="mb-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                            <h3 class="text-lg font-semibold">Детальная информация о клиентах</h3>
+                            <div class="flex items-center space-x-3">
+                                <input type="text" placeholder="Поиск клиентов..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option>Все статусы</option>
+                                    <option>Активные</option>
+                                    <option>Требуют внимания</option>
+                                    <option>Проблемные</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сообщения</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тональность</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Последнее сообщение</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ответственный</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                                <span class="text-sm font-semibold">ДС</span>
+                                            </div>
+                                            <div class="ml-3">
+                                                <div class="text-sm font-medium text-gray-900">Дмитрий Смирнов</div>
+                                                <div class="text-sm text-gray-500">Комплекс</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">247 / 189</div>
+                                        <div class="text-sm text-gray-500">исходящие / входящие</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="sentiment-positive px-3 py-1 rounded-full text-sm font-semibold">0.94</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        2 часа назад
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        Иван Смирнов
+                                    </td>
+                                </tr>
+                                <!-- Больше строк с клиентами... -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Активность -->
+                <div id="activity" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Тепловая карта активности</h3>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="grid grid-cols-8 gap-1 text-xs">
+                                    <div></div>
+                                    <div class="text-center font-medium">Пн</div>
+                                    <div class="text-center font-medium">Вт</div>
+                                    <div class="text-center font-medium">Ср</div>
+                                    <div class="text-center font-medium">Чт</div>
+                                    <div class="text-center font-medium">Пт</div>
+                                    <div class="text-center font-medium">Сб</div>
+                                    <div class="text-center font-medium">Вс</div>
+                                    
+                                    <div class="font-medium">9:00</div>
+                                    <div class="h-6 bg-blue-200 rounded"></div>
+                                    <div class="h-6 bg-blue-300 rounded"></div>
+                                    <div class="h-6 bg-blue-400 rounded"></div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-400 rounded"></div>
+                                    <div class="h-6 bg-blue-100 rounded"></div>
+                                    <div class="h-6 bg-blue-100 rounded"></div>
+                                    
+                                    <div class="font-medium">12:00</div>
+                                    <div class="h-6 bg-blue-400 rounded"></div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-600 rounded"></div>
+                                    <div class="h-6 bg-blue-600 rounded"></div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-200 rounded"></div>
+                                    <div class="h-6 bg-blue-200 rounded"></div>
+                                    
+                                    <div class="font-medium">15:00</div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-600 rounded"></div>
+                                    <div class="h-6 bg-blue-700 rounded"></div>
+                                    <div class="h-6 bg-blue-700 rounded"></div>
+                                    <div class="h-6 bg-blue-600 rounded"></div>
+                                    <div class="h-6 bg-blue-300 rounded"></div>
+                                    <div class="h-6 bg-blue-200 rounded"></div>
+                                    
+                                    <div class="font-medium">18:00</div>
+                                    <div class="h-6 bg-blue-300 rounded"></div>
+                                    <div class="h-6 bg-blue-400 rounded"></div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-500 rounded"></div>
+                                    <div class="h-6 bg-blue-400 rounded"></div>
+                                    <div class="h-6 bg-blue-200 rounded"></div>
+                                    <div class="h-6 bg-blue-100 rounded"></div>
+                                </div>
+                                <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
+                                    <span>Меньше</span>
+                                    <div class="flex space-x-1">
+                                        <div class="w-3 h-3 bg-blue-100 rounded"></div>
+                                        <div class="w-3 h-3 bg-blue-300 rounded"></div>
+                                        <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                                        <div class="w-3 h-3 bg-blue-700 rounded"></div>
+                                    </div>
+                                    <span>Больше</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Пиковые периоды</h3>
+                            <div class="space-y-4">
+                                <div class="border rounded-lg p-4">
+                                    <h4 class="font-medium mb-2">🔥 Самый активный день</h4>
+                                    <p class="text-2xl font-bold text-blue-600">Среда</p>
+                                    <p class="text-sm text-gray-500">387 сообщений в среднем</p>
+                                </div>
+                                
+                                <div class="border rounded-lg p-4">
+                                    <h4 class="font-medium mb-2">⏰ Пиковый час</h4>
+                                    <p class="text-2xl font-bold text-green-600">15:00</p>
+                                    <p class="text-sm text-gray-500">156 сообщений в час</p>
+                                </div>
+                                
+                                <div class="border rounded-lg p-4">
+                                    <h4 class="font-medium mb-2">📈 Рост активности</h4>
+                                    <p class="text-2xl font-bold text-purple-600">+23%</p>
+                                    <p class="text-sm text-gray-500">По сравнению с прошлой неделей</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Тональность -->
+                <div id="sentiment" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Распределение тональности</h3>
+                            <div class="mini-chart-container">
+                                <canvas id="sentimentDistributionChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-semibold mb-4">Изменения тональности</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-arrow-up text-green-500"></i>
+                                        <span class="font-medium">Улучшение</span>
+                                    </div>
+                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">12 клиентов</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-arrow-down text-red-500"></i>
+                                        <span class="font-medium">Ухудшение</span>
+                                    </div>
+                                    <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">3 клиента</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-minus text-gray-500"></i>
+                                        <span class="font-medium">Стабильно</span>
+                                    </div>
+                                    <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">25 клиентов</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Коммуникации -->
+                <div id="communications" class="tab-content">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Последние сообщения</h3>
+                            <div class="flex items-center space-x-3">
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <option>Все чаты</option>
+                                    <option>Test Replit (20)</option>
+                                    <option>Private Chat (1)</option>
+                                </select>
+                                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                                    <i class="fas fa-sync-alt mr-1"></i>
+                                    Обновить
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                            <div class="space-y-3">
+                                <div class="bg-white rounded-lg p-4 border-l-4 border-green-400">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-semibold text-blue-600">Т</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-sm">Тестовый Клиент 1</p>
+                                                <p class="text-gray-700 text-sm mt-1">Спасибо! Хороший результат</p>
+                                                <div class="sentiment-positive px-2 py-1 rounded text-xs font-semibold mt-1 inline-block">
+                                                    😊 positive (0.8)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">01:45:41</p>
+                                            <p class="text-xs text-gray-500">Test Replit</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-4 border-l-4 border-gray-300">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-semibold text-blue-600">Т</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-sm">Тестовый Клиент 2</p>
+                                                <p class="text-gray-700 text-sm mt-1">Когда будет готова работа?</p>
+                                                <div class="sentiment-neutral px-2 py-1 rounded text-xs font-semibold mt-1 inline-block">
+                                                    😐 neutral (0)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">01:45:41</p>
+                                            <p class="text-xs text-gray-500">Test Replit</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-4 border-l-4 border-red-400">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-semibold text-blue-600">Т</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-sm">Тестовый Клиент 3</p>
+                                                <p class="text-gray-700 text-sm mt-1">Это ужас! Переделывайте!</p>
+                                                <div class="sentiment-negative px-2 py-1 rounded text-xs font-semibold mt-1 inline-block">
+                                                    😠 negative (-1)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">01:45:41</p>
+                                            <p class="text-xs text-gray-500">Test Replit</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-4 border-l-4 border-green-500">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-semibold text-green-600">И</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-sm">Иван Смирнов</p>
+                                                <p class="text-gray-700 text-sm mt-1">rrrrr</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">23:58:59</p>
+                                            <p class="text-xs text-gray-500">Test Replit</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация графиков с фиксированными размерами
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = false;
+
+        // График динамики сообщений
+        const messagesCtx = document.getElementById('messagesChart').getContext('2d');
+        const messagesChart = new Chart(messagesCtx, {
+            type: 'line',
+            data: {
+                labels: ['1 янв', '2 янв', '3 янв', '4 янв', '5 янв', '6 янв', '7 янв'],
+                datasets: [{
+                    label: 'От клиентов',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'От команды',
+                    data: [28, 48, 40, 19, 86, 27, 90],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // График тональности
+        const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+        const sentimentChart = new Chart(sentimentCtx, {
+            type: 'line',
+            data: {
+                labels: ['1 янв', '2 янв', '3 янв', '4 янв', '5 янв', '6 янв', '7 янв'],
+                datasets: [{
+                    label: 'Тональность',
+                    data: [0.7, 0.8, 0.6, 0.9, 0.75, 0.8, 0.85],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 1
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // График медианного времени ответа
+        const medianResponseCtx = document.getElementById('medianResponseChart').getContext('2d');
+        const medianResponseChart = new Chart(medianResponseCtx, {
+            type: 'bar',
+            data: {
+                labels: ['1 янв', '2 янв', '3 янв', '4 янв', '5 янв', '6 янв', '7 янв'],
+                datasets: [{
+                    label: 'Минуты',
+                    data: [15, 23, 18, 12, 28, 20, 16],
+                    backgroundColor: '#8b5cf6'
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // График максимального времени ответа
+        const maxResponseCtx = document.getElementById('maxResponseChart').getContext('2d');
+        const maxResponseChart = new Chart(maxResponseCtx, {
+            type: 'bar',
+            data: {
+                labels: ['1 янв', '2 янв', '3 янв', '4 янв', '5 янв', '6 янв', '7 янв'],
+                datasets: [{
+                    label: 'Минуты',
+                    data: [120, 180, 90, 240, 150, 200, 160],
+                    backgroundColor: '#ef4444'
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // График нагрузки сотрудников
+        const workloadCtx = document.getElementById('workloadChart').getContext('2d');
+        const workloadChart = new Chart(workloadCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Иван С.', 'Анна К.', 'Михаил П.'],
+                datasets: [{
+                    data: [487, 423, 356],
+                    backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6']
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // График распределения тональности
+        const sentimentDistCtx = document.getElementById('sentimentDistributionChart').getContext('2d');
+        const sentimentDistChart = new Chart(sentimentDistCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Позитивная', 'Нейтральная', 'Негативная'],
+                datasets: [{
+                    data: [65, 30, 5],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                animation: false
+            }
+        });
+
+        // Переключение табов
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Убираем активность со всех табов
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active', 'border-blue-500', 'text-blue-600'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Добавляем активность к выбранному табу
+                button.classList.add('active', 'border-blue-500', 'text-blue-600');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Переключение периодов для общего фильтра
+        document.querySelectorAll('.period-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.period-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                });
+                
+                button.classList.remove('bg-gray-100', 'text-gray-700');
+                button.classList.add('bg-blue-600', 'text-white');
+            });
+        });
+
+        // Переключение периодов для графиков
+        document.querySelectorAll('.chart-period-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const chartType = button.getAttribute('data-chart');
+                const period = button.getAttribute('data-period');
+                
+                // Убираем активность с кнопок этого графика
+                document.querySelectorAll(`[data-chart="${chartType}"]`).forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                });
+                
+                // Добавляем активность к выбранной кнопке
+                button.classList.remove('bg-gray-100', 'text-gray-700');
+                button.classList.add('bg-blue-600', 'text-white');
+            });
+        });
+
+        // Переключение сообщения/символы
+        document.getElementById('messagesToggle').addEventListener('click', (e) => {
+            if (e.target.classList.contains('toggle-option')) {
+                const toggleContainer = e.target.parentElement;
+                toggleContainer.querySelectorAll('.toggle-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                e.target.classList.add('active');
+                
+                // Здесь можно обновить данные графика
+                const mode = e.target.getAttribute('data-mode');
+                console.log('Switched to:', mode);
+            }
+        });
+    </script>
+</body>
+</html>

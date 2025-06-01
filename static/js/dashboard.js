@@ -269,10 +269,10 @@ class FilteredDashboard {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                            <span class="text-purple-600 text-sm font-medium">${employee.full_name.charAt(0)}</span>
+                            <span class="text-purple-600 text-sm font-medium">${(employee.name || employee.full_name || 'Н/А').charAt(0)}</span>
                         </div>
                         <div>
-                            <div class="text-sm font-medium text-gray-900">${this.escapeHtml(employee.full_name)}</div>
+                            <div class="text-sm font-medium text-gray-900">${this.escapeHtml(employee.name || employee.full_name || 'Неизвестно')}</div>
                             <div class="text-sm text-gray-500">${this.escapeHtml(employee.role || 'Сотрудник')}</div>
                         </div>
                     </div>
