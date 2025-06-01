@@ -1274,6 +1274,239 @@ def recent_communications():
         return jsonify({"error": "Internal server error"}), 500
 
 
+# Team Management API Endpoints
+
+@app.route('/team-management')
+def team_management():
+    """Team management page"""
+    import os
+    admin_token = os.getenv("ADMIN_TOKEN")
+    return render_template('team_management.html', admin_token=admin_token)
+
+
+@app.route('/api/team-members')
+def api_team_members():
+    """Get all team members"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        team_members = TeamMember.query.order_by(TeamMember.full_name).all()
+        
+        members_data = []
+        for member in team_members:
+            # Get message statistics for each member
+            message_stats = db.session.query(
+                func.count(Message.id).label('total_messages'),
+                func.sum(func.length(Message.text)).label('total_characters'),
+                func.max(Message.timestamp).label('last_activity')
+            ).filter(
+                Message.user_id == member.user_id,
+                Message.is_team_member == True
+            ).first()
+            
+            members_data.append({
+                'id': member.id,
+                'user_id': member.user_id,
+                'username': member.username,
+                'full_name': member.full_name,
+                'role': member.role,
+                'is_active': member.is_active,
+                'created_at': member.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': member.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'stats': {
+                    'total_messages': message_stats.total_messages or 0,
+                    'total_characters': message_stats.total_characters or 0,
+                    'last_activity': message_stats.last_activity.strftime('%Y-%m-%d %H:%M:%S') if message_stats.last_activity else None
+                }
+            })
+        
+        return jsonify({'team_members': members_data})
+        
+    except Exception as e:
+        logger.error(f"Error getting team members: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/team-members', methods=['POST'])
+def api_add_team_member():
+    """Add new team member"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['user_id', 'full_name']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"Field '{field}' is required"}), 400
+        
+        # Check if user_id already exists
+        existing_member = TeamMember.query.filter_by(user_id=data['user_id']).first()
+        if existing_member:
+            return jsonify({"error": "Сотрудник с таким Telegram ID уже существует"}), 400
+        
+        # Create new team member
+        new_member = TeamMember(
+            user_id=data['user_id'],
+            username=data.get('username', '').strip() or None,
+            full_name=data['full_name'].strip(),
+            role=data.get('role', '').strip() or None,
+            is_active=data.get('is_active', True)
+        )
+        
+        db.session.add(new_member)
+        db.session.commit()
+        
+        # Update messages to mark this user as team member
+        Message.query.filter_by(user_id=data['user_id']).update(
+            {'is_team_member': True}
+        )
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Сотрудник успешно добавлен",
+            "team_member": {
+                'id': new_member.id,
+                'user_id': new_member.user_id,
+                'username': new_member.username,
+                'full_name': new_member.full_name,
+                'role': new_member.role,
+                'is_active': new_member.is_active
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error adding team member: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/team-members/<int:member_id>', methods=['PUT'])
+def api_update_team_member(member_id):
+    """Update team member"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        member = TeamMember.query.get_or_404(member_id)
+        data = request.get_json()
+        
+        # Update fields
+        if 'username' in data:
+            member.username = data['username'].strip() or None
+        if 'full_name' in data:
+            member.full_name = data['full_name'].strip()
+        if 'role' in data:
+            member.role = data['role'].strip() or None
+        if 'is_active' in data:
+            member.is_active = data['is_active']
+        
+        member.updated_at = datetime.utcnow()
+        
+        # Update messages if status changed
+        if 'is_active' in data:
+            Message.query.filter_by(user_id=member.user_id).update(
+                {'is_team_member': data['is_active']}
+            )
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Данные сотрудника обновлены",
+            "team_member": {
+                'id': member.id,
+                'user_id': member.user_id,
+                'username': member.username,
+                'full_name': member.full_name,
+                'role': member.role,
+                'is_active': member.is_active
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating team member: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/team-members/<int:member_id>', methods=['DELETE'])
+def api_delete_team_member(member_id):
+    """Delete team member"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        member = TeamMember.query.get_or_404(member_id)
+        user_id = member.user_id
+        
+        # Mark messages as non-team member
+        Message.query.filter_by(user_id=user_id).update(
+            {'is_team_member': False}
+        )
+        
+        # Delete team member record
+        db.session.delete(member)
+        db.session.commit()
+        
+        return jsonify({"message": "Сотрудник удален из команды"})
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting team member: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/potential-team-members')
+def api_potential_team_members():
+    """Get users who might be team members based on activity"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Get users who are not currently team members but have significant activity
+        potential_members = db.session.query(
+            Message.user_id,
+            Message.username,
+            Message.full_name,
+            func.count(Message.id).label('message_count'),
+            func.sum(func.length(Message.text)).label('character_count'),
+            func.max(Message.timestamp).label('last_activity')
+        ).filter(
+            Message.is_team_member == False,
+            Message.user_id.notin_(
+                db.session.query(TeamMember.user_id).filter(TeamMember.is_active == True)
+            )
+        ).group_by(
+            Message.user_id,
+            Message.username,
+            Message.full_name
+        ).having(
+            func.count(Message.id) >= 5  # At least 5 messages
+        ).order_by(
+            func.count(Message.id).desc()
+        ).limit(20).all()
+        
+        potential_data = []
+        for user in potential_members:
+            potential_data.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'message_count': user.message_count,
+                'character_count': user.character_count or 0,
+                'last_activity': user.last_activity.strftime('%Y-%m-%d %H:%M:%S') if user.last_activity else None
+            })
+        
+        return jsonify({'potential_members': potential_data})
+        
+    except Exception as e:
+        logger.error(f"Error getting potential team members: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
