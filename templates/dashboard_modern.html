@@ -469,7 +469,7 @@
         // Инициализация дашборда
         let dashboard;
         document.addEventListener('DOMContentLoaded', function() {
-            dashboard = new Dashboard();
+            dashboard = new FilteredDashboard();
             
             // Обработчики событий для вкладок
             document.querySelectorAll('.tab-button').forEach(button => {

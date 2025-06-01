@@ -40,14 +40,14 @@ class FilteredDashboard {
             });
         }
 
-        // Tab change events - using your custom tab system
-        const tabItems = document.querySelectorAll('.tab-item');
-        tabItems.forEach(tab => {
+        // Tab change events - using new tab system
+        const tabButtons = document.querySelectorAll('.tab-button');
+        tabButtons.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
                 
                 // Remove active class from all tabs
-                tabItems.forEach(t => t.classList.remove('active'));
+                tabButtons.forEach(t => t.classList.remove('active'));
                 
                 // Add active class to clicked tab
                 tab.classList.add('active');
@@ -202,15 +202,12 @@ class FilteredDashboard {
     }
 
     updateGeneralStats(stats) {
-        // Update statistics cards
+        // Update statistics cards for new design
         const elements = {
-            'totalMessagesStats': stats.total_messages,
-            'totalSymbolsStats': stats.total_symbols,
-            'teamMessagesStats': stats.team_messages,
-            'clientMessagesStats': stats.client_messages,
-            'avgResponseStats': `${stats.avg_response_time_minutes} мин`,
-            'maxResponseStats': `${stats.max_response_time_minutes} мин`,
-            'medianResponseStats': `${stats.median_response_time_minutes || 0} мин`
+            'totalMessages': stats.total_messages || 0,
+            'clientMessages': stats.client_messages || 0,
+            'teamMessages': stats.team_messages || 0,
+            'totalCharacters': this.formatNumber(stats.total_symbols || 0)
         };
 
         Object.keys(elements).forEach(id => {
@@ -221,14 +218,18 @@ class FilteredDashboard {
         });
 
         // Update percentages
-        const teamPercent = document.getElementById('teamMessagesPercent');
-        if (teamPercent) {
-            teamPercent.textContent = `${stats.team_percentage}% от общего числа`;
+        const total = stats.total_messages || 0;
+        const clientPercent = total > 0 ? Math.round((stats.client_messages / total) * 100) : 0;
+        const teamPercent = total > 0 ? Math.round((stats.team_messages / total) * 100) : 0;
+
+        const clientPercentElement = document.getElementById('clientPercent');
+        if (clientPercentElement) {
+            clientPercentElement.textContent = `${clientPercent}% от общего`;
         }
 
-        const clientPercent = document.getElementById('clientMessagesPercent');
-        if (clientPercent) {
-            clientPercent.textContent = `${stats.client_percentage}% от общего числа`;
+        const teamPercentElement = document.getElementById('teamPercent');
+        if (teamPercentElement) {
+            teamPercentElement.textContent = `${teamPercent}% от общего`;
         }
     }
 
@@ -1001,6 +1002,68 @@ class FilteredDashboard {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    loadTabData(tabName) {
+        switch(tabName) {
+            case 'dashboard':
+                this.loadDashboardData();
+                break;
+            case 'clients':
+                this.loadDashboardData(); // Clients data is part of dashboard data
+                break;
+            case 'activity':
+                this.loadActivityData('day');
+                break;
+            case 'sentiment':
+                this.loadSentimentData();
+                break;
+            case 'communications':
+                this.loadCommunicationsData();
+                break;
+            case 'employees':
+                // Load employees data if needed
+                break;
+        }
+    }
+
+    applyFilters() {
+        // Update current filters from form
+        this.currentFilters.start_date = document.getElementById('startDate').value;
+        this.currentFilters.end_date = document.getElementById('endDate').value;
+        this.currentFilters.chat_id = document.getElementById('chatFilter').value;
+        this.currentFilters.employee_id = document.getElementById('employeeFilter').value;
+        
+        // Reload data for current tab
+        const activeTab = document.querySelector('.tab-button.active');
+        if (activeTab) {
+            const tabName = activeTab.dataset.tab;
+            this.loadTabData(tabName);
+        } else {
+            this.loadDashboardData();
+        }
+    }
+
+    refreshCommunications() {
+        this.loadCommunicationsData();
+    }
+
+    toggleClientView(viewType) {
+        const cardsView = document.getElementById('clientCardsView');
+        const tableView = document.getElementById('clientTableView');
+
+        if (viewType === 'cards') {
+            cardsView.classList.remove('hidden');
+            tableView.classList.add('hidden');
+        } else {
+            cardsView.classList.add('hidden');
+            tableView.classList.remove('hidden');
+        }
+    }
+
+    toggleClientChartType(type) {
+        // Implement chart type switching if needed
+        console.log('Toggle chart type to:', type);
     }
 
     formatResponseTime(minutes) {
