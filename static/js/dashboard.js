@@ -1162,62 +1162,87 @@ class FilteredDashboard {
 
         // Проверяем, что Canvas не занят
         try {
-            // Создаем временные данные для демонстрации (на основе клиентов)
-            const last7Days = [];
-            const sentimentData = [];
-            
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
-                
-                // Рассчитываем среднюю тональность на основе клиентов
-                const clientsWithSentiment = data.clients?.filter(c => c.avg_sentiment !== undefined) || [];
-                const avgSentiment = clientsWithSentiment.length > 0 
-                    ? clientsWithSentiment.reduce((sum, c) => sum + c.avg_sentiment, 0) / clientsWithSentiment.length
-                    : 0;
-                
-                // Добавляем небольшие вариации для демонстрации тренда
-                sentimentData.push(avgSentiment + (Math.random() - 0.5) * 0.3);
-            }
+            // Получаем реальные данные тренда тональности
+            this.loadSentimentTrendData().then(trendData => {
+                if (this.charts.sentimentTrendChart) {
+                    this.charts.sentimentTrendChart.destroy();
+                }
 
-            this.charts.sentimentTrendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: last7Days,
-                datasets: [{
-                    label: 'Средняя тональность',
-                    data: sentimentData,
-                    borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: -1,
-                        max: 1,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toFixed(1);
+                this.charts.sentimentTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: trendData.labels || [],
+                        datasets: [{
+                            label: 'Средняя тональность',
+                            data: trendData.data || [],
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: -1,
+                                max: 1,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(1);
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
                             }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
+                });
+            }).catch(error => {
+                console.error('Error loading sentiment trend data:', error);
+                ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка загрузки данных тренда тональности</div>';
+            });
         } catch (error) {
             console.error('Error creating sentiment trend chart:', error);
+        }
+    }
+
+    async loadSentimentTrendData() {
+        try {
+            const response = await fetch('/api/sentiment-trend?days=7', {
+                headers: { 'X-Admin-Token': this.adminToken }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch sentiment trend data');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading sentiment trend data:', error);
+            return { labels: [], data: [] };
+        }
+    }
+
+    async loadResponseTimeTrendData() {
+        try {
+            const response = await fetch('/api/response-time-trend?days=7', {
+                headers: { 'X-Admin-Token': this.adminToken }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch response time trend data');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading response time trend data:', error);
+            return { labels: [], data: [] };
         }
     }
 
@@ -1262,58 +1287,49 @@ class FilteredDashboard {
         }
 
         try {
-            // Создаем временные данные на основе клиентов
-            const last7Days = [];
-            const responseTimeData = [];
-            
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }));
-                
-                // Рассчитываем среднее время ответа на основе клиентов
-                const clientsWithResponseTime = data.clients?.filter(c => c.avg_response_time_minutes > 0) || [];
-                const avgResponseTime = clientsWithResponseTime.length > 0
-                    ? clientsWithResponseTime.reduce((sum, c) => sum + c.avg_response_time_minutes, 0) / clientsWithResponseTime.length
-                    : 0;
-                
-                // Добавляем вариации для демонстрации тренда
-                responseTimeData.push(Math.max(0, avgResponseTime + (Math.random() - 0.5) * 60));
-            }
+            // Получаем реальные данные тренда времени ответа
+            this.loadResponseTimeTrendData().then(trendData => {
+                if (this.charts.responseTimeTrendChart) {
+                    this.charts.responseTimeTrendChart.destroy();
+                }
 
-            this.charts.responseTimeTrendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: last7Days,
-                datasets: [{
-                    label: 'Среднее время ответа (мин)',
-                    data: responseTimeData,
-                    borderColor: 'rgb(245, 158, 11)',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value + ' мин';
+                this.charts.responseTimeTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: trendData.labels || [],
+                        datasets: [{
+                            label: 'Среднее время ответа (мин)',
+                            data: trendData.data || [],
+                            borderColor: 'rgb(245, 158, 11)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + ' мин';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
                             }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
+                });
+            }).catch(error => {
+                console.error('Error loading response time trend data:', error);
+                ctx.parentElement.innerHTML = '<div class="text-center text-gray-500 py-8">Ошибка загрузки данных времени ответа</div>';
+            });
         } catch (error) {
             console.error('Error creating response time trend chart:', error);
         }

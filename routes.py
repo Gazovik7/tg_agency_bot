@@ -949,6 +949,109 @@ def filter_options():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route('/api/sentiment-trend')
+def sentiment_trend():
+    """Get historical sentiment trend data"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        days = request.args.get('days', 7, type=int)
+        chat_id = request.args.get('chat_id', type=int)
+        
+        # Calculate date range
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(days=days)
+        
+        # Build query filters
+        filters = [
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time,
+            Message.is_team_member == False,
+            Message.sentiment_score.isnot(None)
+        ]
+        
+        if chat_id:
+            filters.append(Message.chat_id == chat_id)
+        
+        # Get daily sentiment averages
+        daily_sentiment = db.session.query(
+            func.date(Message.timestamp).label('date'),
+            func.avg(Message.sentiment_score).label('avg_sentiment'),
+            func.count(Message.id).label('message_count')
+        ).filter(*filters).group_by('date').order_by('date').all()
+        
+        # Format data for chart
+        labels = []
+        data = []
+        
+        for row in daily_sentiment:
+            labels.append(row.date.strftime('%m/%d'))
+            data.append(round(row.avg_sentiment, 3))
+        
+        return jsonify({
+            'labels': labels,
+            'data': data,
+            'period_days': days
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting sentiment trend: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/api/response-time-trend')
+def response_time_trend():
+    """Get historical response time trend data"""
+    if not verify_admin_token():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        days = request.args.get('days', 7, type=int)
+        chat_id = request.args.get('chat_id', type=int)
+        
+        # Calculate date range
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(days=days)
+        
+        # Build query filters
+        filters = [
+            Message.timestamp >= start_time,
+            Message.timestamp <= end_time,
+            Message.response_time_seconds.isnot(None),
+            Message.response_time_seconds > 0
+        ]
+        
+        if chat_id:
+            filters.append(Message.chat_id == chat_id)
+        
+        # Get daily response time averages
+        daily_response_times = db.session.query(
+            func.date(Message.timestamp).label('date'),
+            func.avg(Message.response_time_seconds).label('avg_response_seconds'),
+            func.count(Message.id).label('response_count')
+        ).filter(*filters).group_by('date').order_by('date').all()
+        
+        # Format data for chart
+        labels = []
+        data = []
+        
+        for row in daily_response_times:
+            labels.append(row.date.strftime('%m/%d'))
+            # Convert to minutes
+            data.append(round(row.avg_response_seconds / 60, 1))
+        
+        return jsonify({
+            'labels': labels,
+            'data': data,
+            'period_days': days
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting response time trend: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
 @app.route('/api/response-time-analysis')
 def response_time_analysis():
     """Get detailed response time analysis"""
