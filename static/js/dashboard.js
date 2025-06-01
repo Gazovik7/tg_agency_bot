@@ -576,17 +576,15 @@ class FilteredDashboard {
                 return;
             }
 
-            const filters = this.getFilters();
             const grouping = groupingElement.value || 'day';
             
-            console.log('Loading activity data with filters:', filters, 'grouping:', grouping);
+            console.log('Loading activity data with filters:', this.currentFilters, 'grouping:', grouping);
 
             // Build URL parameters manually to avoid issues
             const params = new URLSearchParams();
-            if (filters.start_date) params.append('start_date', filters.start_date);
-            if (filters.end_date) params.append('end_date', filters.end_date);
-            if (filters.chat_id) params.append('chat_id', filters.chat_id);
-            if (filters.employee_id) params.append('employee_id', filters.employee_id);
+            Object.entries(this.currentFilters).forEach(([key, value]) => {
+                if (value) params.append(key, value);
+            });
             params.append('grouping', grouping);
 
             const url = `/api/activity-data?${params.toString()}`;
