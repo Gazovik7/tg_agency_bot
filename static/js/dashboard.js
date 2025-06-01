@@ -1155,6 +1155,8 @@ class FilteredDashboard {
             this.charts.sentimentTrendChart = null;
         }
 
+        console.log('Creating sentiment trend chart...');
+
         // Проверяем, что Canvas не занят
         try {
             // Создаем временные данные для демонстрации (на основе клиентов)
@@ -1391,12 +1393,12 @@ class FilteredDashboard {
             const currentDate = new Date(startDate);
             currentDate.setDate(currentDate.getDate() - currentDate.getDay()); // Начало недели
             
-            let weekNumber = 1;
             while (currentDate <= endDate) {
+                // Вычисляем номер недели в году
+                const weekNumber = this.getWeekNumber(currentDate);
                 labels.push(`Неделя ${weekNumber}`);
                 data.push((Math.random() - 0.5) * 1.5);
                 currentDate.setDate(currentDate.getDate() + 7);
-                weekNumber++;
             }
         } else if (period === 'month') {
             // Группировка по месяцам
@@ -1439,12 +1441,12 @@ class FilteredDashboard {
             const currentDate = new Date(startDate);
             currentDate.setDate(currentDate.getDate() - currentDate.getDay()); // Начало недели
             
-            let weekNumber = 1;
             while (currentDate <= endDate) {
+                // Вычисляем номер недели в году
+                const weekNumber = this.getWeekNumber(currentDate);
                 labels.push(`Неделя ${weekNumber}`);
                 data.push(Math.random() * 150 + 50);
                 currentDate.setDate(currentDate.getDate() + 7);
-                weekNumber++;
             }
         } else if (period === 'month') {
             // Группировка по месяцам
@@ -1460,6 +1462,15 @@ class FilteredDashboard {
         this.charts.responseTimeTrendChart.data.labels = labels;
         this.charts.responseTimeTrendChart.data.datasets[0].data = data;
         this.charts.responseTimeTrendChart.update();
+    }
+
+    // Utility function to get week number in year
+    getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
     // Client chart controls
@@ -1704,44 +1715,7 @@ class FilteredDashboard {
         Plotly.newPlot('sentimentDistributionChart', chartData, layout, {responsive: true});
     }
 
-    createSentimentTrendChart(trendData) {
-        const chartData = [
-            {
-                x: trendData.labels || [],
-                y: trendData.positive || [],
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Позитивные',
-                line: { color: '#28a745' }
-            },
-            {
-                x: trendData.labels || [],
-                y: trendData.negative || [],
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Негативные',
-                line: { color: '#dc3545' }
-            },
-            {
-                x: trendData.labels || [],
-                y: trendData.neutral || [],
-                type: 'scatter',
-                mode: 'lines+markers',
-                name: 'Нейтральные',
-                line: { color: '#6c757d' }
-            }
-        ];
 
-        const layout = {
-            title: '',
-            xaxis: { title: 'Дата' },
-            yaxis: { title: 'Количество сообщений' },
-            margin: { t: 30, b: 50, l: 50, r: 30 },
-            height: 300
-        };
-
-        Plotly.newPlot('sentimentTrendChart', chartData, layout, {responsive: true});
-    }
 
     // Communications Functions
     async loadCommunicationsData() {
