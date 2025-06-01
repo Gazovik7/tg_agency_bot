@@ -401,54 +401,94 @@ class FilteredDashboard {
             return;
         }
 
-        const totalMessages = clients.reduce((sum, client) => sum + client.total_messages, 0);
+        // Сортируем клиентов по активности
+        const sortedClients = [...clients].sort((a, b) => b.total_messages - a.total_messages);
 
-        clients.forEach(client => {
-            const activityPercent = totalMessages > 0 ? (client.total_messages / totalMessages * 100) : 0;
-            const activityLevel = this.getActivityLevel(client.total_messages);
-            const intensityPercent = this.calculateIntensity(client.total_messages, clients);
-
+        sortedClients.forEach((client, index) => {
+            const priorityClass = this.getClientPriority(client);
+            const responseTimeClass = this.getResponseTimeClass(client.avg_response_time_minutes);
+            
             const card = document.createElement('div');
             card.className = 'client-card';
             card.innerHTML = `
                 <div class="client-card-header">
-                    <h4 class="client-name">
-                        ${this.escapeHtml(client.name)}
-                        <span class="activity-indicator ${activityLevel.class}"></span>
-                    </h4>
+                    <h4 class="client-name">${this.escapeHtml(client.name)}</h4>
+                    <span class="priority-badge ${priorityClass.class}">${priorityClass.label}</span>
                 </div>
-                <div class="client-card-body">
-                    <div class="client-stats">
-                        <div class="client-stat-item">
-                            <div class="client-stat-value" style="color: #4361ee">${client.team_messages}</div>
-                            <div class="client-stat-label">Наша команда</div>
-                        </div>
-                        <div class="client-stat-item">
-                            <div class="client-stat-value" style="color: #4cc9f0">${client.client_messages}</div>
-                            <div class="client-stat-label">Команда клиента</div>
-                        </div>
+                
+                <div class="client-metrics">
+                    <div class="metric-item">
+                        <span class="metric-value">${client.total_messages}</span>
+                        <span class="metric-label">Сообщений</span>
                     </div>
-                    <div class="client-metrics">
-                        <div class="client-metric">
-                            <div class="client-metric-value">${this.formatNumber(client.team_characters)}</div>
-                            <div class="client-metric-label">Символов от нас</div>
-                        </div>
-                        <div class="client-metric">
-                            <div class="client-metric-value">${this.formatNumber(client.client_characters)}</div>
-                            <div class="client-metric-label">Символов от клиента</div>
-                        </div>
-                        <div class="client-metric">
-                            <div class="client-metric-value">${client.team_message_ratio}%</div>
-                            <div class="client-metric-label">Наша доля</div>
-                        </div>
+                    <div class="metric-item">
+                        <span class="metric-value">${Math.round(client.communication_intensity || 0)}</span>
+                        <span class="metric-label">Интенсивность</span>
                     </div>
-                    <div class="intensity-bar ${activityLevel.class}">
-                        <div class="intensity-fill" style="width: ${intensityPercent}%"></div>
+                </div>
+
+                <div class="response-time-indicator ${responseTimeClass}">
+                    <strong>⏱ Время ответа:</strong> ${this.formatResponseTimeText(client.avg_response_time_minutes)}
+                </div>
+
+                <div class="client-stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-header">Наша команда</div>
+                        <div class="stat-value team">${client.team_messages}</div>
+                        <div class="stat-detail">${client.team_characters} симв.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-header">Клиент</div>
+                        <div class="stat-value client">${client.client_messages}</div>
+                        <div class="stat-detail">${client.client_characters} симв.</div>
+                    </div>
+                </div>
+
+                <div class="response-stats">
+                    <div class="response-stat">
+                        <span class="response-badge good">&lt; 5 мин: ${client.responses_under_5min || 0}</span>
+                    </div>
+                    <div class="response-stat">
+                        <span class="response-badge warning">&gt; 1 час: ${client.responses_over_1hour || 0}</span>
                     </div>
                 </div>
             `;
             cardsContainer.appendChild(card);
         });
+    }
+
+    getClientPriority(client) {
+        const avgResponseTime = client.avg_response_time_minutes || 0;
+        const totalMessages = client.total_messages || 0;
+        
+        if (avgResponseTime > 240 || totalMessages > 50) {
+            return { class: 'priority-high', label: 'Высокий' };
+        } else if (avgResponseTime > 60 || totalMessages > 25) {
+            return { class: 'priority-medium', label: 'Средний' };
+        } else {
+            return { class: 'priority-low', label: 'Низкий' };
+        }
+    }
+
+    getResponseTimeClass(minutes) {
+        if (!minutes || minutes === 0) return 'response-good';
+        if (minutes <= 15) return 'response-good';
+        if (minutes <= 60) return 'response-warning';
+        return 'response-poor';
+    }
+
+    formatResponseTimeText(minutes) {
+        if (!minutes || minutes === 0) {
+            return 'Не определено';
+        }
+        
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = Math.round(minutes % 60);
+            return `${hours}ч ${remainingMinutes}м`;
+        } else {
+            return `${Math.round(minutes)}м`;
+        }
     }
 
     updateClientTable(clients) {
