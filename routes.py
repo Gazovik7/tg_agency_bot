@@ -47,7 +47,7 @@ def index():
     """Main dashboard page"""
     import os
     admin_token = os.getenv("ADMIN_TOKEN")
-    return render_template('dashboard.html', admin_token=admin_token)
+    return render_template('dashboard_modern.html', admin_token=admin_token)
 
 
 @app.route('/response-time-analysis')

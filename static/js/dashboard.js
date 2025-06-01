@@ -397,7 +397,7 @@ class FilteredDashboard {
         cardsContainer.innerHTML = '';
 
         if (!clients.length) {
-            cardsContainer.innerHTML = '<div class="text-center text-muted py-4">Нет данных о клиентах за выбранный период</div>';
+            cardsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">Нет данных о клиентах за выбранный период</div>';
             return;
         }
 
@@ -409,47 +409,51 @@ class FilteredDashboard {
             const responseTimeClass = this.getResponseTimeClass(client.avg_response_time_minutes);
             
             const card = document.createElement('div');
-            card.className = 'client-card';
+            card.className = 'client-card bg-white rounded-xl p-6 shadow-sm border';
             card.innerHTML = `
-                <div class="client-card-header">
-                    <h4 class="client-name">${this.escapeHtml(client.name)}</h4>
-                    <span class="priority-badge ${priorityClass.class}">${priorityClass.label}</span>
+                <div class="flex items-start justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900 leading-tight">${this.escapeHtml(client.name)}</h4>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full ${priorityClass.class}">${priorityClass.label}</span>
                 </div>
                 
-                <div class="client-metrics">
-                    <div class="metric-item">
-                        <span class="metric-value">${client.total_messages}</span>
-                        <span class="metric-label">Сообщений</span>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">${client.total_messages}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Сообщений</div>
                     </div>
-                    <div class="metric-item">
-                        <span class="metric-value">${Math.round(client.communication_intensity || 0)}</span>
-                        <span class="metric-label">Интенсивность</span>
-                    </div>
-                </div>
-
-                <div class="response-time-indicator ${responseTimeClass}">
-                    <strong>⏱ Время ответа:</strong> ${this.formatResponseTimeText(client.avg_response_time_minutes)}
-                </div>
-
-                <div class="client-stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-header">Наша команда</div>
-                        <div class="stat-value team">${client.team_messages}</div>
-                        <div class="stat-detail">${client.team_characters} симв.</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-header">Клиент</div>
-                        <div class="stat-value client">${client.client_messages}</div>
-                        <div class="stat-detail">${client.client_characters} симв.</div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600">${Math.round(client.communication_intensity || 0)}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Интенсивность</div>
                     </div>
                 </div>
 
-                <div class="response-stats">
-                    <div class="response-stat">
-                        <span class="response-badge good">&lt; 5 мин: ${client.responses_under_5min || 0}</span>
+                <div class="mb-4 p-3 rounded-lg ${responseTimeClass}">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-clock"></i>
+                        <span class="font-medium">Время ответа:</span>
+                        <span>${this.formatResponseTimeText(client.avg_response_time_minutes)}</span>
                     </div>
-                    <div class="response-stat">
-                        <span class="response-badge warning">&gt; 1 час: ${client.responses_over_1hour || 0}</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-blue-50 rounded-lg p-3 text-center">
+                        <div class="text-sm text-blue-600 font-medium">Наша команда</div>
+                        <div class="text-xl font-bold text-blue-800">${client.team_messages}</div>
+                        <div class="text-xs text-blue-600">${client.team_characters} симв.</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3 text-center">
+                        <div class="text-sm text-purple-600 font-medium">Клиент</div>
+                        <div class="text-xl font-bold text-purple-800">${client.client_messages}</div>
+                        <div class="text-xs text-purple-600">${client.client_characters} симв.</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <div class="flex-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded text-center">
+                        &lt; 5 мин: ${client.responses_under_5min || 0}
+                    </div>
+                    <div class="flex-1 bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded text-center">
+                        &gt; 1 час: ${client.responses_over_1hour || 0}
                     </div>
                 </div>
             `;
@@ -462,19 +466,19 @@ class FilteredDashboard {
         const totalMessages = client.total_messages || 0;
         
         if (avgResponseTime > 240 || totalMessages > 50) {
-            return { class: 'priority-high', label: 'Высокий' };
+            return { class: 'bg-red-100 text-red-800', label: 'Высокий' };
         } else if (avgResponseTime > 60 || totalMessages > 25) {
-            return { class: 'priority-medium', label: 'Средний' };
+            return { class: 'bg-yellow-100 text-yellow-800', label: 'Средний' };
         } else {
-            return { class: 'priority-low', label: 'Низкий' };
+            return { class: 'bg-green-100 text-green-800', label: 'Низкий' };
         }
     }
 
     getResponseTimeClass(minutes) {
-        if (!minutes || minutes === 0) return 'response-good';
-        if (minutes <= 15) return 'response-good';
-        if (minutes <= 60) return 'response-warning';
-        return 'response-poor';
+        if (!minutes || minutes === 0) return 'bg-gray-100 text-gray-600';
+        if (minutes <= 15) return 'bg-green-100 text-green-800';
+        if (minutes <= 60) return 'bg-yellow-100 text-yellow-800';
+        return 'bg-red-100 text-red-800';
     }
 
     formatResponseTimeText(minutes) {

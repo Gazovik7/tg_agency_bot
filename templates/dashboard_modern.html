@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Дашборд Аналитики Коммуникаций</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .metric-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        .trend-up { color: #10b981; }
+        .trend-down { color: #ef4444; }
+        .trend-neutral { color: #6b7280; }
+        .client-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+        .client-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .priority-high { 
+            background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%); 
+            color: #c53030;
+        }
+        .priority-medium { 
+            background: linear-gradient(135deg, #fffbeb 0%, #fde68a 100%); 
+            color: #d69e2e;
+        }
+        .priority-low { 
+            background: linear-gradient(135deg, #d4f4dd 0%, #a7f3d0 100%); 
+            color: #38a169;
+        }
+        .response-good { background-color: #d4f4dd; color: #38a169; }
+        .response-warning { background-color: #fffbeb; color: #d69e2e; }
+        .response-poor { background-color: #fed7d7; color: #c53030; }
+        .chart-container {
+            min-height: 300px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex items-center mb-4 lg:mb-0">
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-2 rounded-lg mr-3">
+                        <i class="fas fa-chart-bar text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">📊 Аналитика Тестовое Агентство</h1>
+                        <p class="text-gray-600 text-sm">Детальная статистика коммуникаций с клиентами</p>
+                    </div>
+                </div>
+                
+                <!-- Период отчета -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Период отчета:</label>
+                    <input type="date" id="startDate" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <span class="text-gray-500">—</span>
+                    <input type="date" id="endDate" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <button id="updateButton" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>Обновить
+                    </button>
+                    <div class="text-xs text-gray-500">
+                        Обновлено: <span id="lastUpdated">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Фильтры -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">🔍 Фильтры</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Чат:</label>
+                    <select id="chatFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option value="">Все чаты</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Сотрудник:</label>
+                    <select id="employeeFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option value="">Все сотрудники</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="applyFilters" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors w-full">
+                        <i class="fas fa-filter mr-2"></i>Применить фильтры
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Навигационные вкладки -->
+        <div class="bg-white rounded-xl shadow-sm mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 active" data-tab="dashboard">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Дашборд
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="clients">
+                        <i class="fas fa-users mr-2"></i>Клиенты
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="activity">
+                        <i class="fas fa-chart-line mr-2"></i>Активность
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="sentiment">
+                        <i class="fas fa-smile mr-2"></i>Тональность
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="communications">
+                        <i class="fas fa-comments mr-2"></i>Коммуникации
+                    </button>
+                    <button class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="employees">
+                        <i class="fas fa-user-tie mr-2"></i>Сотрудники
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Содержимое вкладок -->
+        <div id="tabContent">
+            <!-- Вкладка Дашборд -->
+            <div class="tab-content active" id="dashboard">
+                <!-- Общая статистика -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Всего сообщений</h3>
+                            <i class="fas fa-comments text-blue-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="totalMessages">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">за выбранный период</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Сообщений от клиентов</h3>
+                            <i class="fas fa-user text-purple-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="clientMessages">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500" id="clientPercent">0% от общего</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Сообщений от команды</h3>
+                            <i class="fas fa-users text-green-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="teamMessages">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500" id="teamPercent">0% от общего</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Всего символов</h3>
+                            <i class="fas fa-font text-indigo-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="totalCharacters">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">в сообщениях</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Клиенты -->
+            <div class="tab-content" id="clients">
+                <!-- Графики клиентской активности -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Распределение активности клиентов</h3>
+                                <div class="flex gap-2">
+                                    <button class="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg" onclick="dashboard.toggleClientChartType('messages')">По сообщениям</button>
+                                    <button class="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg" onclick="dashboard.toggleClientChartType('characters')">По символам</button>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="clientActivityChart"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Доля активности</h3>
+                            <div class="chart-container" id="clientDistributionChart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Клиентские карточки -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Детальная информация о клиентах</h3>
+                        <div class="flex gap-2 mt-4 sm:mt-0">
+                            <button class="px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg" onclick="dashboard.toggleClientView('cards')">
+                                <i class="fas fa-th-large mr-2"></i>Карточки
+                            </button>
+                            <button class="px-4 py-2 text-sm bg-gray-100 text-gray-600 rounded-lg" onclick="dashboard.toggleClientView('table')">
+                                <i class="fas fa-table mr-2"></i>Таблица
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Карточки клиентов -->
+                    <div id="clientCardsView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Client cards will be populated here -->
+                    </div>
+
+                    <!-- Таблица клиентов -->
+                    <div id="clientTableView" class="hidden overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Клиент</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сообщения</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Время ответа</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Приоритет</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Table rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Активность -->
+            <div class="tab-content" id="activity">
+                <!-- Метрики активности -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Всего сообщений</h3>
+                            <i class="fas fa-chart-bar text-blue-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="activityTotalMessages">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500">за период</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Среднее за период</h3>
+                            <i class="fas fa-calculator text-green-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="activityAvgPerPeriod">0</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500" id="activityAvgLabel">сообщений</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Пиковый период</h3>
+                            <i class="fas fa-mountain text-orange-500"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900 mb-1" id="activityPeakPeriod">-</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500" id="activityPeakCount">0 сообщений</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card bg-white rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-medium text-gray-600">Пиковый час</h3>
+                            <i class="fas fa-clock text-purple-500"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="activityPeakHour">-</div>
+                        <div class="flex items-center text-sm">
+                            <span class="text-gray-500" id="activityPeakHourCount">0 сообщений</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Контролы группировки -->
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 sm:mb-0">Анализ активности</h3>
+                        <div class="flex gap-2">
+                            <button class="px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg activity-grouping-btn active" data-grouping="day">
+                                <i class="fas fa-calendar-day mr-2"></i>По дням
+                            </button>
+                            <button class="px-4 py-2 text-sm bg-gray-100 text-gray-600 rounded-lg activity-grouping-btn" data-grouping="week">
+                                <i class="fas fa-calendar-week mr-2"></i>По неделям
+                            </button>
+                            <button class="px-4 py-2 text-sm bg-gray-100 text-gray-600 rounded-lg activity-grouping-btn" data-grouping="month">
+                                <i class="fas fa-calendar mr-2"></i>По месяцам
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Графики активности -->
+                <div class="space-y-6">
+                    <!-- Time-series график -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Сообщения по выбранной шкале</h3>
+                        <div class="chart-container" id="activityTimeSeriesChart"></div>
+                    </div>
+
+                    <!-- Гистограмма по часам -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Распределение по часам</h3>
+                        <div class="chart-container" id="activityHourHistogram"></div>
+                    </div>
+
+                    <!-- Тепловые карты -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Активность клиентов по дням и часам</h3>
+                            <div class="chart-container" id="activityClientHeatmap"></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Активность команды по дням и часам</h3>
+                            <div class="chart-container" id="activityTeamHeatmap"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Тональность -->
+            <div class="tab-content" id="sentiment">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Анализ тональности клиентских сообщений</h3>
+                    
+                    <!-- Статистика тональности -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="metric-card bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-medium text-green-800">Позитивные</h3>
+                                <i class="fas fa-smile text-green-600"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-green-900 mb-1" id="positiveCount">0</div>
+                            <div class="text-sm text-green-700" id="positivePercent">0%</div>
+                        </div>
+
+                        <div class="metric-card bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-medium text-red-800">Негативные</h3>
+                                <i class="fas fa-frown text-red-600"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-red-900 mb-1" id="negativeCount">0</div>
+                            <div class="text-sm text-red-700" id="negativePercent">0%</div>
+                        </div>
+
+                        <div class="metric-card bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-medium text-gray-800">Нейтральные</h3>
+                                <i class="fas fa-meh text-gray-600"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-gray-900 mb-1" id="neutralCount">0</div>
+                            <div class="text-sm text-gray-700" id="neutralPercent">0%</div>
+                        </div>
+
+                        <div class="metric-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-medium text-blue-800">Общий рейтинг</h3>
+                                <i class="fas fa-chart-line text-blue-600"></i>
+                            </div>
+                            <div class="text-3xl font-bold text-blue-900 mb-1" id="avgScore">0.00</div>
+                            <div class="text-sm text-blue-700" id="totalAnalyzed">0 проанализировано</div>
+                        </div>
+                    </div>
+
+                    <!-- Графики тональности -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-md font-medium text-gray-900 mb-4">Распределение тональности</h4>
+                            <div class="chart-container" id="sentimentDistributionChart"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-medium text-gray-900 mb-4">Динамика тональности по дням</h4>
+                            <div class="chart-container" id="sentimentTrendChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Коммуникации -->
+            <div class="tab-content" id="communications">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Коммуникации с клиентами</h3>
+                        <div class="flex flex-wrap gap-2 mt-4 sm:mt-0">
+                            <select id="communicationsLimit" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="20">20 сообщений</option>
+                                <option value="50" selected>50 сообщений</option>
+                                <option value="100">100 сообщений</option>
+                            </select>
+                            <select id="communicationsFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="all">Все сообщения</option>
+                                <option value="client">Только от клиентов</option>
+                                <option value="team">Только от команды</option>
+                            </select>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors" onclick="dashboard.refreshCommunications()">
+                                <i class="fas fa-sync-alt mr-2"></i>Обновить
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Активные чаты -->
+                    <div class="mb-6">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Активные чаты</h4>
+                        <div id="chatsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Chat cards will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Сообщения -->
+                    <div>
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Последние сообщения</h4>
+                        <div id="messagesContainer" class="space-y-4">
+                            <!-- Messages will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Сотрудники -->
+            <div class="tab-content" id="employees">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Производительность сотрудников</h3>
+                    <div id="employeesContainer">
+                        <p class="text-gray-500 text-center py-8">Функция находится в разработке</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        // Инициализация токена
+        window.adminToken = '771G@zoviK';
+        
+        // Инициализация дашборда
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', function() {
+            dashboard = new Dashboard();
+            
+            // Обработчики событий для вкладок
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
+
+            // Обработчики для группировки активности
+            document.querySelectorAll('.activity-grouping-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const grouping = this.dataset.grouping;
+                    
+                    // Обновляем активную кнопку
+                    document.querySelectorAll('.activity-grouping-btn').forEach(btn => {
+                        btn.classList.remove('active', 'bg-purple-100', 'text-purple-700');
+                        btn.classList.add('bg-gray-100', 'text-gray-600');
+                    });
+                    this.classList.add('active', 'bg-purple-100', 'text-purple-700');
+                    this.classList.remove('bg-gray-100', 'text-gray-600');
+                    
+                    dashboard.loadActivityData(grouping);
+                });
+            });
+
+            // Обработчики для фильтров
+            document.getElementById('applyFilters').addEventListener('click', function() {
+                dashboard.applyFilters();
+            });
+
+            document.getElementById('updateButton').addEventListener('click', function() {
+                dashboard.applyFilters();
+            });
+
+            // Установка дат по умолчанию
+            setDefaultDates();
+        });
+
+        function switchTab(tabName) {
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Убрать активный класс со всех кнопок
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+                button.classList.add('border-transparent', 'text-gray-500');
+                button.classList.remove('border-purple-500', 'text-purple-600');
+            });
+            
+            // Показать выбранную вкладку
+            const targetTab = document.getElementById(tabName);
+            const targetButton = document.querySelector(`[data-tab="${tabName}"]`);
+            
+            if (targetTab && targetButton) {
+                targetTab.classList.add('active');
+                targetButton.classList.add('active', 'border-purple-500', 'text-purple-600');
+                targetButton.classList.remove('border-transparent', 'text-gray-500');
+                
+                // Загрузить данные для вкладки
+                dashboard.loadTabData(tabName);
+            }
+        }
+
+        function setDefaultDates() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 7);
+            
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        }
+    </script>
+</body>
+</html>
