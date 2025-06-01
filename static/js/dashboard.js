@@ -158,6 +158,11 @@ class FilteredDashboard {
             }
 
             const data = await response.json();
+            console.log('Loading dashboard data with filters:', this.currentFilters);
+            console.log('Request URL:', `/api/filtered-dashboard-data?${params}`);
+            console.log('Auth headers:', this.getAuthHeaders());
+            console.log('Response status:', response.status);
+            console.log('Received data:', data);
             this.updateDashboard(data);
             this.updateLastUpdated();
 
