@@ -427,6 +427,7 @@
                                 <th>Username</th>
                                 <th>Роль</th>
                                 <th>Статус</th>
+                                <th>Связывание</th>
                                 <th>Сообщений</th>
                                 <th>Последняя активность</th>
                                 <th>Действия</th>
@@ -464,10 +465,10 @@
             <div id="modal-alerts"></div>
             <form id="member-form">
                 <div class="form-group">
-                    <label for="user-id">Telegram ID *</label>
-                    <input type="number" id="user-id" name="user_id" required 
-                           placeholder="Например: 123456789">
-                    <small style="color: #6c757d;">ID пользователя в Telegram (числовой)</small>
+                    <label for="user-id">Telegram ID</label>
+                    <input type="number" id="user-id" name="user_id" 
+                           placeholder="Например: 123456789 (необязательно)">
+                    <small style="color: #6c757d;">ID пользователя в Telegram. Если не знаете - оставьте пустым, будет найден автоматически</small>
                 </div>
                 <div class="form-group">
                     <label for="full-name">Полное имя *</label>
@@ -569,13 +570,18 @@
             teamMembers.forEach(member => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${member.user_id}</td>
+                    <td>${member.user_id || '-'}</td>
                     <td>${member.full_name}</td>
                     <td>${member.username || '-'}</td>
                     <td>${member.role || '-'}</td>
                     <td>
                         <span class="status-badge ${member.is_active ? 'status-active' : 'status-inactive'}">
                             ${member.is_active ? 'Активный' : 'Неактивный'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${member.is_linked ? 'status-active' : 'status-inactive'}">
+                            ${member.is_linked ? 'Связан' : 'Ожидает'}
                         </span>
                     </td>
                     <td>${member.stats.total_messages}</td>
@@ -713,10 +719,19 @@
             e.preventDefault();
 
             const formData = new FormData(e.target);
+            const userId = formData.get('user_id');
+            const username = formData.get('username');
+            
+            // Validate that either user_id or username is provided
+            if (!userId && !username) {
+                showModalAlert('error', 'Необходимо указать либо Telegram ID, либо Username');
+                return;
+            }
+            
             const data = {
-                user_id: parseInt(formData.get('user_id')),
+                user_id: userId ? parseInt(userId) : null,
                 full_name: formData.get('full_name'),
-                username: formData.get('username') || null,
+                username: username || null,
                 role: formData.get('role') || null,
                 is_active: formData.get('is_active') === 'true'
             };

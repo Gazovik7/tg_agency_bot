@@ -119,11 +119,12 @@ class TeamMember(db.Model):
     __tablename__ = 'team_members'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.BigInteger, unique=True, nullable=False)  # Telegram user ID
-    username = db.Column(db.String(255))
+    user_id = db.Column(db.BigInteger, unique=True, nullable=True)  # Telegram user ID (can be null initially)
+    username = db.Column(db.String(255), unique=True, nullable=True)  # Telegram username (unique)
     full_name = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(100))
     is_active = db.Column(db.Boolean, default=True)
+    is_linked = db.Column(db.Boolean, default=False)  # True when user_id is found
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -1337,44 +1337,62 @@ def api_add_team_member():
     try:
         data = request.get_json()
         
-        # Validate required fields
-        required_fields = ['user_id', 'full_name']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({"error": f"Field '{field}' is required"}), 400
+        # Validate required fields - now only full_name is required
+        if not data.get('full_name'):
+            return jsonify({"error": "Поле 'full_name' обязательно"}), 400
         
-        # Check if user_id already exists
-        existing_member = TeamMember.query.filter_by(user_id=data['user_id']).first()
-        if existing_member:
-            return jsonify({"error": "Сотрудник с таким Telegram ID уже существует"}), 400
+        # Either user_id or username must be provided
+        user_id = data.get('user_id')
+        username = data.get('username', '').strip()
+        
+        if not user_id and not username:
+            return jsonify({"error": "Необходимо указать либо Telegram ID, либо Username"}), 400
+        
+        # Check if user_id already exists (if provided)
+        if user_id:
+            existing_member = TeamMember.query.filter_by(user_id=user_id).first()
+            if existing_member:
+                return jsonify({"error": "Сотрудник с таким Telegram ID уже существует"}), 400
+        
+        # Check if username already exists (if provided)
+        if username:
+            existing_member = TeamMember.query.filter_by(username=username).first()
+            if existing_member:
+                return jsonify({"error": "Сотрудник с таким Username уже существует"}), 400
         
         # Create new team member
         new_member = TeamMember(
-            user_id=data['user_id'],
-            username=data.get('username', '').strip() or None,
+            user_id=user_id,
+            username=username or None,
             full_name=data['full_name'].strip(),
             role=data.get('role', '').strip() or None,
-            is_active=data.get('is_active', True)
+            is_active=data.get('is_active', True),
+            is_linked=bool(user_id)  # True if we have user_id, False if only username
         )
         
         db.session.add(new_member)
         db.session.commit()
         
-        # Update messages to mark this user as team member
-        Message.query.filter_by(user_id=data['user_id']).update(
-            {'is_team_member': True}
-        )
-        db.session.commit()
+        # Update messages to mark this user as team member (if we have user_id)
+        if user_id:
+            Message.query.filter_by(user_id=user_id).update(
+                {'is_team_member': True}
+            )
+            db.session.commit()
         
         return jsonify({
-            "message": "Сотрудник успешно добавлен",
+            "message": "Сотрудник успешно добавлен" + (
+                " и связан с Telegram ID" if user_id else 
+                ". Telegram ID будет автоматически найден при появлении в чатах"
+            ),
             "team_member": {
                 'id': new_member.id,
                 'user_id': new_member.user_id,
                 'username': new_member.username,
                 'full_name': new_member.full_name,
                 'role': new_member.role,
-                'is_active': new_member.is_active
+                'is_active': new_member.is_active,
+                'is_linked': new_member.is_linked
             }
         }), 201
         

@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from config_manager import ConfigManager
 from models import Chat, Message as MessageModel, db
 from app import app
+from team_member_linker import team_linker
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
