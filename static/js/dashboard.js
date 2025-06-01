@@ -1,7 +1,7 @@
 // Enhanced Dashboard with Filters
 class FilteredDashboard {
     constructor() {
-        this.adminToken = null;
+        this.adminToken = window.adminToken || '771G@zoviK';
         this.currentFilters = {
             chat_id: '',
             employee_id: '',
