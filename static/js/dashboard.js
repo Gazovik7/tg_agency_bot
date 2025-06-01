@@ -239,14 +239,15 @@ class FilteredDashboard {
 
     updateClientStats(clients) {
         const totalClients = clients.length;
-        const totalMessages = clients.reduce((sum, client) => sum + client.message_count, 0);
-        const totalCharacters = clients.reduce((sum, client) => sum + (client.character_count || 0), 0);
+        const totalMessages = clients.reduce((sum, client) => sum + client.total_messages, 0);
+        const totalCharacters = clients.reduce((sum, client) => sum + client.total_characters, 0);
+        const totalClientMessages = clients.reduce((sum, client) => sum + client.client_messages, 0);
         const avgMessages = totalClients > 0 ? Math.round(totalMessages / totalClients) : 0;
 
         // Update stat cards
         const stats = {
             'totalActiveClients': totalClients,
-            'totalClientMessages': totalMessages,
+            'totalClientMessages': totalClientMessages,
             'avgMessagesPerClient': avgMessages,
             'totalClientCharacters': this.formatNumber(totalCharacters)
         };
@@ -262,8 +263,8 @@ class FilteredDashboard {
     createClientCharts(clients) {
         if (!clients.length) return;
 
-        // Sort clients by message count for better visualization
-        const sortedClients = [...clients].sort((a, b) => b.message_count - a.message_count);
+        // Sort clients by communication intensity
+        const sortedClients = [...clients].sort((a, b) => b.communication_intensity - a.communication_intensity);
         const topClients = sortedClients.slice(0, 10); // Show top 10 clients
 
         this.createClientActivityChart(topClients);
@@ -274,26 +275,30 @@ class FilteredDashboard {
         const chartDiv = document.getElementById('clientActivityChart');
         if (!chartDiv || !clients.length) return;
 
-        const trace = {
+        // Create grouped bar chart showing team vs client messages
+        const teamTrace = {
             x: clients.map(client => this.truncateName(client.name, 15)),
-            y: clients.map(client => client.message_count),
+            y: clients.map(client => client.team_messages),
             type: 'bar',
-            name: 'Сообщения',
-            marker: {
-                color: clients.map((_, index) => {
-                    const colors = ['#4361ee', '#3f37c9', '#4cc9f0', '#7209b7', '#560bad'];
-                    return colors[index % colors.length];
-                })
-            },
-            text: clients.map(client => `${client.message_count} сообщений<br>${client.character_count || 0} символов`),
-            textposition: 'auto',
-            hovertemplate: '<b>%{x}</b><br>Сообщений: %{y}<br>Символов: %{customdata}<extra></extra>',
-            customdata: clients.map(client => client.character_count || 0)
+            name: 'Наша команда',
+            marker: { color: '#4361ee' },
+            hovertemplate: '<b>%{x}</b><br>Сообщений от нашей команды: %{y}<br>Символов: %{customdata}<extra></extra>',
+            customdata: clients.map(client => client.team_characters)
+        };
+
+        const clientTrace = {
+            x: clients.map(client => this.truncateName(client.name, 15)),
+            y: clients.map(client => client.client_messages),
+            type: 'bar',
+            name: 'Команда клиента',
+            marker: { color: '#4cc9f0' },
+            hovertemplate: '<b>%{x}</b><br>Сообщений от команды клиента: %{y}<br>Символов: %{customdata}<extra></extra>',
+            customdata: clients.map(client => client.client_characters)
         };
 
         const layout = {
             title: {
-                text: 'Топ-10 наиболее активных клиентов',
+                text: 'Объем коммуникаций с клиентами',
                 font: { size: 16, color: '#333' }
             },
             xaxis: { 
@@ -301,10 +306,15 @@ class FilteredDashboard {
                 tickangle: -45
             },
             yaxis: { title: 'Количество сообщений' },
+            barmode: 'group',
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
             font: { color: '#333' },
-            margin: { l: 60, r: 30, t: 60, b: 100 }
+            margin: { l: 60, r: 30, t: 60, b: 100 },
+            legend: {
+                orientation: 'h',
+                y: -0.2
+            }
         };
 
         const config = {
@@ -312,7 +322,7 @@ class FilteredDashboard {
             displayModeBar: false
         };
 
-        Plotly.newPlot(chartDiv, [trace], layout, config);
+        Plotly.newPlot(chartDiv, [teamTrace, clientTrace], layout, config);
         this.charts.clientActivityChart = chartDiv;
     }
 
@@ -320,34 +330,26 @@ class FilteredDashboard {
         const chartDiv = document.getElementById('clientDistributionChart');
         if (!chartDiv || !clients.length) return;
 
-        const totalMessages = clients.reduce((sum, client) => sum + client.message_count, 0);
-        const topClients = clients.slice(0, 5); // Top 5 for pie chart
-        const othersCount = clients.slice(5).reduce((sum, client) => sum + client.message_count, 0);
-
-        const labels = topClients.map(client => this.truncateName(client.name, 12));
-        const values = topClients.map(client => client.message_count);
-
-        if (othersCount > 0) {
-            labels.push('Остальные');
-            values.push(othersCount);
-        }
+        // Show overall team vs client communication distribution
+        const totalTeamMessages = clients.reduce((sum, client) => sum + client.team_messages, 0);
+        const totalClientMessages = clients.reduce((sum, client) => sum + client.client_messages, 0);
 
         const trace = {
-            labels: labels,
-            values: values,
+            labels: ['Наша команда', 'Команды клиентов'],
+            values: [totalTeamMessages, totalClientMessages],
             type: 'pie',
             hole: 0.4,
             marker: {
-                colors: ['#4361ee', '#3f37c9', '#4cc9f0', '#7209b7', '#560bad', '#a663cc']
+                colors: ['#4361ee', '#4cc9f0']
             },
-            textinfo: 'label+percent',
+            textinfo: 'label+percent+value',
             textposition: 'auto',
             hovertemplate: '<b>%{label}</b><br>Сообщений: %{value}<br>Доля: %{percent}<extra></extra>'
         };
 
         const layout = {
             title: {
-                text: 'Распределение активности',
+                text: 'Соотношение активности команд',
                 font: { size: 16, color: '#333' }
             },
             paper_bgcolor: 'rgba(0,0,0,0)',
@@ -382,16 +384,12 @@ class FilteredDashboard {
             return;
         }
 
-        const totalMessages = clients.reduce((sum, client) => sum + client.message_count, 0);
+        const totalMessages = clients.reduce((sum, client) => sum + client.total_messages, 0);
 
         clients.forEach(client => {
-            const avgLength = client.character_count > 0 && client.message_count > 0 
-                ? Math.round(client.character_count / client.message_count) 
-                : 0;
-            
-            const activityPercent = totalMessages > 0 ? (client.message_count / totalMessages * 100) : 0;
-            const activityLevel = this.getActivityLevel(client.message_count);
-            const intensityPercent = this.calculateIntensity(client.message_count, clients);
+            const activityPercent = totalMessages > 0 ? (client.total_messages / totalMessages * 100) : 0;
+            const activityLevel = this.getActivityLevel(client.total_messages);
+            const intensityPercent = this.calculateIntensity(client.total_messages, clients);
 
             const card = document.createElement('div');
             card.className = 'client-card';
@@ -405,22 +403,26 @@ class FilteredDashboard {
                 <div class="client-card-body">
                     <div class="client-stats">
                         <div class="client-stat-item">
-                            <div class="client-stat-value">${client.message_count}</div>
-                            <div class="client-stat-label">Сообщений</div>
+                            <div class="client-stat-value" style="color: #4361ee">${client.team_messages}</div>
+                            <div class="client-stat-label">Наша команда</div>
                         </div>
                         <div class="client-stat-item">
-                            <div class="client-stat-value">${this.formatNumber(client.character_count || 0)}</div>
-                            <div class="client-stat-label">Символов</div>
+                            <div class="client-stat-value" style="color: #4cc9f0">${client.client_messages}</div>
+                            <div class="client-stat-label">Команда клиента</div>
                         </div>
                     </div>
                     <div class="client-metrics">
                         <div class="client-metric">
-                            <div class="client-metric-value">${avgLength}</div>
-                            <div class="client-metric-label">Средняя длина</div>
+                            <div class="client-metric-value">${this.formatNumber(client.team_characters)}</div>
+                            <div class="client-metric-label">Символов от нас</div>
                         </div>
                         <div class="client-metric">
-                            <div class="client-metric-value">${activityPercent.toFixed(1)}%</div>
-                            <div class="client-metric-label">Доля активности</div>
+                            <div class="client-metric-value">${this.formatNumber(client.client_characters)}</div>
+                            <div class="client-metric-label">Символов от клиента</div>
+                        </div>
+                        <div class="client-metric">
+                            <div class="client-metric-value">${client.team_message_ratio}%</div>
+                            <div class="client-metric-label">Наша доля</div>
                         </div>
                     </div>
                     <div class="intensity-bar ${activityLevel.class}">
@@ -445,16 +447,12 @@ class FilteredDashboard {
             return;
         }
 
-        const totalMessages = clients.reduce((sum, client) => sum + client.message_count, 0);
+        const totalMessages = clients.reduce((sum, client) => sum + client.total_messages, 0);
 
         clients.forEach(client => {
-            const avgLength = client.character_count > 0 && client.message_count > 0 
-                ? Math.round(client.character_count / client.message_count) 
-                : 0;
-            
-            const activityPercent = totalMessages > 0 ? (client.message_count / totalMessages * 100) : 0;
-            const activityLevel = this.getActivityLevel(client.message_count);
-            const intensityPercent = this.calculateIntensity(client.message_count, clients);
+            const activityPercent = totalMessages > 0 ? (client.total_messages / totalMessages * 100) : 0;
+            const activityLevel = this.getActivityLevel(client.total_messages);
+            const intensityPercent = this.calculateIntensity(client.total_messages, clients);
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -462,9 +460,15 @@ class FilteredDashboard {
                     ${this.escapeHtml(client.name)}
                     <span class="activity-indicator ${activityLevel.class}"></span>
                 </td>
-                <td>${client.message_count}</td>
-                <td>${this.formatNumber(client.character_count || 0)}</td>
-                <td>${avgLength}</td>
+                <td>
+                    <span style="color: #4361ee; font-weight: 600;">${client.team_messages}</span> / 
+                    <span style="color: #4cc9f0; font-weight: 600;">${client.client_messages}</span>
+                </td>
+                <td>
+                    <span style="color: #4361ee;">${this.formatNumber(client.team_characters)}</span> / 
+                    <span style="color: #4cc9f0;">${this.formatNumber(client.client_characters)}</span>
+                </td>
+                <td>${client.team_message_ratio}% / ${client.client_message_ratio}%</td>
                 <td>${activityPercent.toFixed(1)}%</td>
                 <td>
                     <div class="intensity-bar ${activityLevel.class}">
@@ -542,7 +546,7 @@ class FilteredDashboard {
 
     calculateIntensity(messageCount, allClients) {
         if (!allClients.length) return 0;
-        const maxMessages = Math.max(...allClients.map(c => c.message_count));
+        const maxMessages = Math.max(...allClients.map(c => c.total_messages || c.message_count || 0));
         return maxMessages > 0 ? (messageCount / maxMessages * 100) : 0;
     }
 

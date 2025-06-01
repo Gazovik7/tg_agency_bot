@@ -705,36 +705,78 @@ def filtered_dashboard_data():
         avg_response_time = sum(response_times) / len(response_times) if response_times else 0
         max_response_time = max(response_times) if response_times else 0
         
-        # Get employee activity data
+        # Get employee activity data (by individual users)
         employee_stats = db.session.query(
             Message.user_id,
             Message.full_name,
-            Message.is_team_member,
             func.count(Message.id).label('message_count'),
             func.sum(func.length(Message.text)).label('character_count')
-        ).filter(*query_filters).group_by(
-            Message.user_id, Message.full_name, Message.is_team_member
+        ).filter(*query_filters, Message.is_team_member == True).group_by(
+            Message.user_id, Message.full_name
         ).all()
         
         employees_data = []
-        clients_data = []
-        
         for emp in employee_stats:
-            emp_data = {
+            employees_data.append({
                 'user_id': emp.user_id,
                 'name': emp.full_name or 'Unknown',
                 'message_count': emp.message_count,
                 'character_count': emp.character_count or 0
-            }
-            
-            if emp.is_team_member:
-                employees_data.append(emp_data)
-            else:
-                clients_data.append(emp_data)
+            })
         
-        # Sort by message count
+        # Get client communication data (grouped by chat/client organization)
+        chat_stats = db.session.query(
+            Chat.id.label('chat_id'),
+            Chat.title.label('chat_title'),
+            func.count(func.case([(Message.is_team_member == True, 1)])).label('team_messages'),
+            func.count(func.case([(Message.is_team_member == False, 1)])).label('client_messages'),
+            func.sum(func.case([(Message.is_team_member == True, func.length(Message.text))])).label('team_characters'),
+            func.sum(func.case([(Message.is_team_member == False, func.length(Message.text))])).label('client_characters'),
+            func.count(Message.id).label('total_messages'),
+            func.sum(func.length(Message.text)).label('total_characters')
+        ).join(Chat, Message.chat_id == Chat.id).filter(*query_filters).group_by(
+            Chat.id, Chat.title
+        ).all()
+        
+        clients_data = []
+        for chat in chat_stats:
+            # Calculate communication balance
+            total_messages = chat.team_messages + chat.client_messages
+            total_characters = (chat.team_characters or 0) + (chat.client_characters or 0)
+            
+            if total_messages > 0:
+                team_message_ratio = (chat.team_messages / total_messages) * 100
+                client_message_ratio = (chat.client_messages / total_messages) * 100
+            else:
+                team_message_ratio = 0
+                client_message_ratio = 0
+            
+            if total_characters > 0:
+                team_char_ratio = ((chat.team_characters or 0) / total_characters) * 100
+                client_char_ratio = ((chat.client_characters or 0) / total_characters) * 100
+            else:
+                team_char_ratio = 0
+                client_char_ratio = 0
+            
+            clients_data.append({
+                'chat_id': chat.chat_id,
+                'name': chat.chat_title,
+                'team_messages': chat.team_messages,
+                'client_messages': chat.client_messages,
+                'team_characters': chat.team_characters or 0,
+                'client_characters': chat.client_characters or 0,
+                'total_messages': total_messages,
+                'total_characters': total_characters,
+                'team_message_ratio': round(team_message_ratio, 1),
+                'client_message_ratio': round(client_message_ratio, 1),
+                'team_char_ratio': round(team_char_ratio, 1),
+                'client_char_ratio': round(client_char_ratio, 1),
+                'communication_intensity': total_messages  # For sorting
+            })
+        
+        # Sort by communication intensity
         employees_data.sort(key=lambda x: x['message_count'], reverse=True)
-        clients_data.sort(key=lambda x: x['message_count'], reverse=True)
+        clients_data.sort(key=lambda x: x['communication_intensity'], reverse=True)
         
         return jsonify({
             'general_stats': {
