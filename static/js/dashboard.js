@@ -1146,7 +1146,7 @@ class FilteredDashboard {
     }
 
     createSentimentTrendChart(data) {
-        const ctx = document.getElementById('sentimentTrendChart');
+        let ctx = document.getElementById('sentimentTrendChart');
         if (!ctx) {
             console.log('Sentiment trend chart canvas not found');
             return;
@@ -1163,6 +1163,16 @@ class FilteredDashboard {
             this.charts.sentimentTrendChart.destroy();
             this.charts.sentimentTrendChart = null;
         }
+
+        // Полностью пересоздаем Canvas элемент для избежания конфликтов Chart.js
+        const parent = ctx.parentNode;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'sentimentTrendChart';
+        newCanvas.style.width = '100%';
+        newCanvas.style.height = '400px';
+        parent.removeChild(ctx);
+        parent.appendChild(newCanvas);
+        ctx = newCanvas;
 
         console.log('Creating sentiment trend chart...');
 
@@ -1300,7 +1310,7 @@ class FilteredDashboard {
     }
 
     createResponseTimeTrendChart(data) {
-        const ctx = document.getElementById('responseTimeTrendChart');
+        let ctx = document.getElementById('responseTimeTrendChart');
         if (!ctx) {
             console.log('Response time trend chart canvas not found');
             return;
@@ -1317,6 +1327,16 @@ class FilteredDashboard {
             this.charts.responseTimeTrendChart.destroy();
             this.charts.responseTimeTrendChart = null;
         }
+
+        // Полностью пересоздаем Canvas элемент для избежания конфликтов Chart.js
+        const parent = ctx.parentNode;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'responseTimeTrendChart';
+        newCanvas.style.width = '100%';
+        newCanvas.style.height = '400px';
+        parent.removeChild(ctx);
+        parent.appendChild(newCanvas);
+        ctx = newCanvas;
 
         try {
             // Получаем реальные данные тренда времени ответа
