@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
+import os
+   print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
