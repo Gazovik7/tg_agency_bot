@@ -1,6 +1,35 @@
 import asyncio
 import logging
 import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Настраиваем расширенное логирование
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+try:
+    # Загружаем переменные окружения из файла .env
+    env_path = Path('.') / '.env'
+    logger.debug(f"Пытаемся загрузить .env из: {env_path.absolute()}")
+    logger.debug(f"Файл .env существует: {env_path.exists()}")
+    
+    load_dotenv(dotenv_path=env_path)
+    
+    # Проверяем загрузку переменных
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    logger.debug(f"TELEGRAM_BOT_TOKEN загружен: {'Да' if bot_token else 'Нет'}")
+    
+    if not bot_token:
+        raise ValueError("TELEGRAM_BOT_TOKEN не найден в переменных окружения")
+        
+except Exception as e:
+    logger.error(f"Ошибка при инициализации: {str(e)}", exc_info=True)
+    raise
+
 import json
 from datetime import datetime
 from typing import Optional

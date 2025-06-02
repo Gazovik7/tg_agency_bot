@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Agency Bot Service
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=ваш_пользователь
+WorkingDirectory=/var/www/tg_agency_bot
+ExecStart=/var/www/tg_agency_bot/start_services.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 
